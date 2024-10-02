@@ -156,6 +156,15 @@ else
     echo "All search and fuzzy find tools are already installed."
 fi
 
+# Git Configuration
+echo "Configuring Git account..."
+read -p "Enter your Git username: " git_username
+read -p "Enter your Git email: " git_email
+
+git config --global user.name "$git_username"
+git config --global user.email "$git_email"
+echo "Git configured with username '$git_username' and email '$git_email'."
+
 # Vim
 
 ## Create the vim configuration directory
