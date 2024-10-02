@@ -21,7 +21,16 @@ echo "source $VIM_CONFIG" >> "$HOME/.vimrc"
 
 echo ".vimrc created and configured to point to $VIM_CONFIG"
 
+# Define the destination directory for Vim color schemes
+VIM_COLOR_DIR="$HOME/.config/vim/colors"
 
+# Create the directory if it doesn't exist
+mkdir -p "$VIM_COLOR_DIR"
+
+# Download the Dracula color scheme
+curl -o "$VIM_COLOR_DIR/dracula.vim" https://raw.githubusercontent.com/dracula/vim/master/colors/dracula.vim
+
+echo "Setup complete! Please restart Vim to see the changes."
 
 # bashrc
 
