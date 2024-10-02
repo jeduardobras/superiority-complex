@@ -90,20 +90,28 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
     mkdir -p "$HOME/.config/vim"
     echo "Created vim configuration directory."
 
-    ## Copies my vim config into the appropriate directory
-    cp .config/vim/jbras.vim "$HOME/.config/vim"
-    echo "Copied vim configuration file."
-
-    ## Define the path to the Vim configuration file
-    VIM_CONFIG="$HOME/.config/vim/jbras.vim"
+    ## Create the autoload directory for vim-plug
+    mkdir -p "$HOME/.config/vim/autoload"
+    
+    # Install vim-plug if not already installed
+    if [ ! -f "$HOME/.config/vim/autoload/plug.vim" ]; then
+        echo "Installing vim-plug..."
+        curl -fLo "$HOME/.config/vim/autoload/plug.vim" --create-dirs \
+            https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        echo "vim-plug installed."
+    else
+        echo "vim-plug is already installed."
+    fi
 
     ## Create the .vimrc file in the home directory
     {
         echo "set runtimepath+=~/.config/vim"
-        echo "source $VIM_CONFIG"
+        echo "call plug#begin('~/.config/vim/plugged')"
+        echo "Plug 'mattn/vim-rsync'"  # Add vim-rsync plugin
+        echo "call plug#end()"
     } > "$HOME/.vimrc"
 
-    echo ".vimrc created and configured to point to $VIM_CONFIG."
+    echo ".vimrc created and configured to include vim-rsync."
 
     # Define the destination directory for Vim color schemes
     VIM_COLOR_DIR="$HOME/.config/vim/colors"
@@ -117,7 +125,7 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
 
     # Check if the colorscheme file was downloaded successfully
     if [ -f "$VIM_COLOR_DIR/dracula.vim" ]; then
-        echo "Setup complete! Please restart Vim to see the changes."
+        echo "Setup complete! Please restart Vim and run :PlugInstall to install vim-rsync."
     else
         echo "Error: Failed to download the Dracula color scheme."
     fi
