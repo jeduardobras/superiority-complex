@@ -36,7 +36,7 @@ INSTALLED_TERMINAL_TOOLS=()
 SEARCH_TOOLS=(ripgrep fzf screenfetch)
 INSTALLED_SEARCH_TOOLS=()
 
-# Function to install missing tools
+# Function to install missing tools with error handling
 install_tools() {
     local tool_category="$1"
     shift
@@ -56,7 +56,10 @@ install_tools() {
         if [[ "$answer" =~ ^[Yy]$ ]]; then
             echo "Installing missing ${tool_category//_/ }: ${missing_tools[*]}..."
             sudo apt update
-            sudo apt install -y "${missing_tools[@]}"
+            if ! sudo apt install -y "${missing_tools[@]}"; then
+                echo "Failed to install some tools. Exiting..."
+                exit 1
+            fi
         else
             echo "Skipping installation of missing ${tool_category//_/ }."
         fi
@@ -101,17 +104,27 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
     # Install vim-plug if not already installed
     if [ ! -f "$HOME/.config/vim/autoload/plug.vim" ]; then
         echo "Installing vim-plug..."
-        curl -fLo "$HOME/.config/vim/autoload/plug.vim" --create-dirs \
-            https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        if ! curl -fLo "$HOME/.config/vim/autoload/plug.vim" --create-dirs \
+            https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim; then
+            echo "Failed to install vim-plug. Exiting..."
+            exit 1
+        fi
         echo "vim-plug installed."
     else
         echo "vim-plug is already installed."
     fi
 
+    # Copy the custom Vim configuration file
+    cp .config/vim/jbras.vim "$HOME/.config/vim"
+    echo "Created vim configuration file: jbras.vim"
+
+    # Define the path to the Vim configuration file
+    VIM_CONFIG="$HOME/.config/vim/jbras.vim"
+
     ## Create the .vimrc file in the home directory
     {
         echo "set runtimepath+=~/.config/vim"
-        echo "source ~/.config/vim/jbras.vim"  # Point to your custom config file
+        echo "source $VIM_CONFIG"  # Point to your custom config file
         echo "call plug#begin('~/.config/vim/plugged')"
         echo "Plug 'mattn/vim-rsync'"  # Add vim-rsync plugin
         echo "call plug#end()"
@@ -126,9 +139,9 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
         echo "    \ 'port': 22,"
         echo "    \ 'path': '/path/to/remote/directory',"
         echo "    \ }"
-    } >> "$HOME/.vimrc"
+    } >> "$VIM_CONFIG"
 
-    echo "vim-rsync configuration added to .vimrc."
+    echo "vim-rsync configuration added to $VIM_CONFIG."
 
     # Define the destination directory for Vim color schemes
     VIM_COLOR_DIR="$HOME/.config/vim/colors"
@@ -137,15 +150,15 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
     mkdir -p "$VIM_COLOR_DIR"
 
     # Download the Dracula color scheme
-    curl -o "$VIM_COLOR_DIR/dracula.vim" https://raw.githubusercontent.com/dracula/vim/master/colors/dracula.vim
-    echo "Dracula color scheme downloaded."
-
-    # Check if the colorscheme file was downloaded successfully
-    if [ -f "$VIM_COLOR_DIR/dracula.vim" ]; then
-        echo "Setup complete! Please restart Vim and run :PlugInstall to install vim-rsync."
+    echo "Downloading Dracula color scheme..."
+    if curl -o "$VIM_COLOR_DIR/dracula.vim" https://raw.githubusercontent.com/dracula/vim/master/colors/dracula.vim; then
+        echo "Dracula color scheme downloaded."
     else
         echo "Error: Failed to download the Dracula color scheme."
+        exit 1
     fi
+
+    echo "Setup complete! Please restart Vim and run :PlugInstall to install vim-rsync."
 else
     echo "Skipping Vim installation."
 fi
@@ -164,7 +177,9 @@ done
 if ! grep -q "eval \"\$(ssh-agent -s)\"" "$HOME/.bashrc"; then
     echo -e "\n# Start SSH agent" >> "$HOME/.bashrc"
     echo 'eval "$(ssh-agent -s)"' >> "$HOME/.bashrc"
-    echo "ssh-add ~/.ssh/github_jbras_sea_ai" >> "$HOME/.bashrc" # Modify this line for your key if needed
+    read -p "Enter your SSH key path (default: ~/.ssh/github_jbras_sea_ai): " ssh_key
+    ssh_key=${ssh_key:-~/.ssh/github_jbras_sea_ai}
+    echo "ssh-add $ssh_key" >> "$HOME/.bashrc" # Modify this line for your key if needed
     echo "SSH agent initialization added to .bashrc."
 else
     echo "SSH agent initialization already exists in .bashrc."
