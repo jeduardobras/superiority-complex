@@ -10,30 +10,39 @@ command_exists() {
 
 # Core utilities
 CORE_UTILS=(ssh curl git vim python3 valgrind)
+INSTALLED_CORE_UTILS=()
 
 # Compilers
 COMPILERS=(gcc default-jdk)
+INSTALLED_COMPILERS=()
 
 # Development tools
 DEV_UTILS=(docker python3-venv)
+INSTALLED_DEV_UTILS=()
 
 # API Tools
 API_TOOLS=(postman httpie)
+INSTALLED_API_TOOLS=()
 
 # Build Tools
 BUILD_TOOLS=(cmake make)
+INSTALLED_BUILD_TOOLS=()
 
 # Terminal Tools
 TERMINAL_TOOLS=(tmux htop)
+INSTALLED_TERMINAL_TOOLS=()
 
 # Search and Fuzzy Find Tools
-SEARCH_TOOLS=(ripgrep fzf fastfetch)
+SEARCH_TOOLS=(ripgrep fzf screenfetch)
+INSTALLED_SEARCH_TOOLS=()
 
 # Install core utilities if they are missing
 missing_utils=()
 for tool in "${CORE_UTILS[@]}"; do
     if ! command_exists "$tool"; then
         missing_utils+=("$tool")
+    else
+        INSTALLED_CORE_UTILS+=("$tool")
     fi
 done
 
@@ -50,6 +59,8 @@ missing_compilers=()
 for compiler in "${COMPILERS[@]}"; do
     if ! command_exists "$compiler"; then
         missing_compilers+=("$compiler")
+    else
+        INSTALLED_COMPILERS+=("$compiler")
     fi
 done
 
@@ -65,6 +76,8 @@ missing_dev_utils=()
 for tool in "${DEV_UTILS[@]}"; do
     if ! command_exists "$tool"; then
         missing_dev_utils+=("$tool")
+    else
+        INSTALLED_DEV_UTILS+=("$tool")
     fi
 done
 
@@ -80,6 +93,8 @@ missing_api_tools=()
 for tool in "${API_TOOLS[@]}"; do
     if ! command_exists "$tool"; then
         missing_api_tools+=("$tool")
+    else
+        INSTALLED_API_TOOLS+=("$tool")
     fi
 done
 
@@ -95,6 +110,8 @@ missing_build_tools=()
 for tool in "${BUILD_TOOLS[@]}"; do
     if ! command_exists "$tool"; then
         missing_build_tools+=("$tool")
+    else
+        INSTALLED_BUILD_TOOLS+=("$tool")
     fi
 done
 
@@ -110,6 +127,8 @@ missing_terminal_tools=()
 for tool in "${TERMINAL_TOOLS[@]}"; do
     if ! command_exists "$tool"; then
         missing_terminal_tools+=("$tool")
+    else
+        INSTALLED_TERMINAL_TOOLS+=("$tool")
     fi
 done
 
@@ -125,6 +144,8 @@ missing_search_tools=()
 for tool in "${SEARCH_TOOLS[@]}"; do
     if ! command_exists "$tool"; then
         missing_search_tools+=("$tool")
+    else
+        INSTALLED_SEARCH_TOOLS+=("$tool")
     fi
 done
 
@@ -174,6 +195,37 @@ if [ -f "$VIM_COLOR_DIR/dracula.vim" ]; then
     echo "Setup complete! Please restart Vim to see the changes."
 else
     echo "Error: Failed to download the Dracula color scheme."
+fi
+
+# Summary of installed tools
+echo -e "\n### Summary of Installed Tools ###"
+
+if [ ${#INSTALLED_CORE_UTILS[@]} -ne 0 ]; then
+    echo "Core Utilities: ${INSTALLED_CORE_UTILS[*]}"
+fi
+
+if [ ${#INSTALLED_COMPILERS[@]} -ne 0 ]; then
+    echo "Compilers: ${INSTALLED_COMPILERS[*]}"
+fi
+
+if [ ${#INSTALLED_DEV_UTILS[@]} -ne 0 ]; then
+    echo "Development Tools: ${INSTALLED_DEV_UTILS[*]}"
+fi
+
+if [ ${#INSTALLED_API_TOOLS[@]} -ne 0 ]; then
+    echo "API Tools: ${INSTALLED_API_TOOLS[*]}"
+fi
+
+if [ ${#INSTALLED_BUILD_TOOLS[@]} -ne 0 ]; then
+    echo "Build Tools: ${INSTALLED_BUILD_TOOLS[*]}"
+fi
+
+if [ ${#INSTALLED_TERMINAL_TOOLS[@]} -ne 0 ]; then
+    echo "Terminal Tools: ${INSTALLED_TERMINAL_TOOLS[*]}"
+fi
+
+if [ ${#INSTALLED_SEARCH_TOOLS[@]} -ne 0 ]; then
+    echo "Search and Fuzzy Find Tools: ${INSTALLED_SEARCH_TOOLS[*]}"
 fi
 
 # bashrc
