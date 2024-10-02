@@ -1,25 +1,27 @@
 #!/bin/bash
 
-# Vim 
+# Vim
 
-## Create the vim configuration file
-mkdir -p $HOME/.config/vim
+## Create the vim configuration directory
+mkdir -p "$HOME/.config/vim"
 
-echo "created vim configuration directory"
+echo "Created vim configuration directory."
 
 ## Copies my vim config into the appropriate directory
-cp .config/vim/jbras.vim $HOME/.config/vim
+cp .config/vim/jbras.vim "$HOME/.config/vim"
 
-echo "created vim configuration file"
+echo "Copied vim configuration file."
 
 ## Define the path to the Vim configuration file
 VIM_CONFIG="$HOME/.config/vim/jbras.vim"
 
 ## Create the .vimrc file in the home directory
-echo "set runtimepath+=~/.config/vim" > "$HOME/.vimrc"
-echo "source $VIM_CONFIG" >> "$HOME/.vimrc"
+{
+    echo "set runtimepath+=~/.config/vim"
+    echo "source $VIM_CONFIG"
+} > "$HOME/.vimrc"
 
-echo ".vimrc created and configured to point to $VIM_CONFIG"
+echo ".vimrc created and configured to point to $VIM_CONFIG."
 
 # Define the destination directory for Vim color schemes
 VIM_COLOR_DIR="$HOME/.config/vim/colors"
@@ -30,7 +32,14 @@ mkdir -p "$VIM_COLOR_DIR"
 # Download the Dracula color scheme
 curl -o "$VIM_COLOR_DIR/dracula.vim" https://raw.githubusercontent.com/dracula/vim/master/colors/dracula.vim
 
-echo "Setup complete! Please restart Vim to see the changes."
+echo "Dracula color scheme downloaded."
+
+# Check if the colorscheme file was downloaded successfully
+if [ -f "$VIM_COLOR_DIR/dracula.vim" ]; then
+    echo "Setup complete! Please restart Vim to see the changes."
+else
+    echo "Error: Failed to download the Dracula color scheme."
+fi
 
 # bashrc
 
@@ -43,3 +52,4 @@ if ! grep -q "eval \"\$(ssh-agent -s)\"" "$HOME/.bashrc"; then
 else
     echo "SSH agent initialization already exists in .bashrc."
 fi
+
