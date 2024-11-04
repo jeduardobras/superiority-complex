@@ -8,20 +8,55 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Detect if the OS is Arch-based or Debian-based
+if command_exists pacman; then
+    PACKAGE_MANAGER="pacman -S --noconfirm"
+    INSTALL_CMD="sudo pacman -Syu --noconfirm"
+    VENV_PACKAGE="python-virtualenv"  # Arch uses python-virtualenv
+    JDK_PACKAGE="jdk-openjdk"         # Arch uses jdk-openjdk instead of default-jdk
+    POSTMAN_PACKAGE="postman-bin"     # Use postman-bin from AUR for Arch
+    CHROME_PACKAGE="google-chrome"    # Use google-chrome from AUR for Arch
+
+    # Check for an AUR helper like yay or paru
+    if command_exists yay; then
+        AUR_INSTALLER="yay -S --noconfirm"
+    elif command_exists paru; then
+        AUR_INSTALLER="paru -S --noconfirm"
+    else
+        echo "No AUR helper found. Please install 'yay' or 'paru' to proceed with AUR packages."
+        POSTMAN_PACKAGE=""
+        CHROME_PACKAGE=""
+    fi
+elif command_exists apt; then
+    PACKAGE_MANAGER="apt install -y"
+    INSTALL_CMD="sudo apt update && sudo apt install -y"
+    VENV_PACKAGE="python3-venv"       # Debian uses python3-venv
+    JDK_PACKAGE="default-jdk"         # Debian uses default-jdk
+    POSTMAN_PACKAGE="postman"         # Use postman directly for Debian
+    CHROME_PACKAGE="google-chrome-stable"  # Will add Google's repository for Chrome
+else
+    echo "Unsupported package manager. Please use a Debian or Arch-based system."
+    exit 1
+fi
+
 # Core utilities
 CORE_UTILS=(ssh curl git vim python3 valgrind)
 INSTALLED_CORE_UTILS=()
 
 # Compilers
-COMPILERS=(gcc default-jdk)
+COMPILERS=(gcc "$JDK_PACKAGE")
 INSTALLED_COMPILERS=()
 
 # Development tools
-DEV_UTILS=(docker python3-venv)
+DEV_UTILS=(docker "$VENV_PACKAGE")
 INSTALLED_DEV_UTILS=()
 
 # API Tools
-API_TOOLS=(postman httpie)
+if [ -n "$POSTMAN_PACKAGE" ]; then
+    API_TOOLS=(httpie "$POSTMAN_PACKAGE")
+else
+    API_TOOLS=(httpie)
+fi
 INSTALLED_API_TOOLS=()
 
 # Build Tools
@@ -36,12 +71,20 @@ INSTALLED_TERMINAL_TOOLS=()
 SEARCH_TOOLS=(ripgrep fzf screenfetch)
 INSTALLED_SEARCH_TOOLS=()
 
+# Browsers
+if [ -n "$CHROME_PACKAGE" ]; then
+    BROWSERS=("$CHROME_PACKAGE")
+else
+    BROWSERS=()
+fi
+INSTALLED_BROWSERS=()
+
 # Function to install missing tools with error handling
 install_tools() {
     local tool_category="$1"
     shift
     local tools=("$@")
-    
+
     missing_tools=()
     for tool in "${tools[@]}"; do
         if ! command_exists "$tool"; then
@@ -55,11 +98,20 @@ install_tools() {
         read -p "Do you want to install missing ${tool_category//_/ }? (${missing_tools[*]}): [y/N] " answer
         if [[ "$answer" =~ ^[Yy]$ ]]; then
             echo "Installing missing ${tool_category//_/ }: ${missing_tools[*]}..."
-            sudo apt update
-            if ! sudo apt install -y "${missing_tools[@]}"; then
-                echo "Failed to install some tools. Exiting..."
-                exit 1
-            fi
+            $INSTALL_CMD
+            for tool in "${missing_tools[@]}"; do
+                if [[ "$tool" == "postman-bin" || "$tool" == "google-chrome" ]] && [ -n "$AUR_INSTALLER" ]; then
+                    $AUR_INSTALLER "$tool" || echo "Failed to install $tool from AUR."
+                elif [[ "$tool" == "google-chrome-stable" ]]; then
+                    # Add Google's repository and install Chrome on Debian-based systems
+                    wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+                    sudo sh -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+                    sudo apt update
+                    sudo apt install -y google-chrome-stable
+                else
+                    sudo $PACKAGE_MANAGER "$tool"
+                fi
+            done
         else
             echo "Skipping installation of missing ${tool_category//_/ }."
         fi
@@ -76,6 +128,7 @@ install_tools "API_TOOLS" "${API_TOOLS[@]}"
 install_tools "BUILD_TOOLS" "${BUILD_TOOLS[@]}"
 install_tools "TERMINAL_TOOLS" "${TERMINAL_TOOLS[@]}"
 install_tools "SEARCH_TOOLS" "${SEARCH_TOOLS[@]}"
+install_tools "BROWSERS" "${BROWSERS[@]}"
 
 # Git Configuration
 read -p "Do you want to configure Git? [y/N] " git_configure
@@ -94,18 +147,13 @@ fi
 # Vim Installation and Configuration
 read -p "Do you want to install and configure Vim? [y/N] " vim_install
 if [[ "$vim_install" =~ ^[Yy]$ ]]; then
-    ## Create the vim configuration directory
     mkdir -p "$HOME/.config/vim"
     echo "Created vim configuration directory."
-
-    ## Create the autoload directory for vim-plug
     mkdir -p "$HOME/.config/vim/autoload"
-    
-    # Install vim-plug if not already installed
+
     if [ ! -f "$HOME/.config/vim/autoload/plug.vim" ]; then
         echo "Installing vim-plug..."
-        if ! curl -fLo "$HOME/.config/vim/autoload/plug.vim" --create-dirs \
-            https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim; then
+        if ! curl -fLo "$HOME/.config/vim/autoload/plug.vim" --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim; then
             echo "Failed to install vim-plug. Exiting..."
             exit 1
         fi
@@ -114,25 +162,25 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
         echo "vim-plug is already installed."
     fi
 
-    # Copy the custom Vim configuration file
-    cp .config/vim/jbras.vim "$HOME/.config/vim"
-    echo "Created vim configuration file: jbras.vim"
-
-    # Define the path to the Vim configuration file
+    # Check if jbras.vim exists in the script directory
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -f "$SCRIPT_DIR/.config/vim/jbras.vim" ]; then
+        cp "$SCRIPT_DIR/.config/vim/jbras.vim" "$HOME/.config/vim"
+        echo "Copied vim configuration file: jbras.vim"
+    else
+        echo "jbras.vim not found in $SCRIPT_DIR/.config/vim. Creating a default configuration."
+        echo "\" Default Vim configuration" > "$HOME/.config/vim/jbras.vim"
+    fi
     VIM_CONFIG="$HOME/.config/vim/jbras.vim"
 
-    ## Create the .vimrc file in the home directory
     {
         echo "set runtimepath+=~/.config/vim"
-        echo "source $VIM_CONFIG"  # Point to your custom config file
+        echo "source $VIM_CONFIG"
         echo "call plug#begin('~/.config/vim/plugged')"
-        echo "Plug 'mattn/vim-rsync'"  # Add vim-rsync plugin
+        echo "Plug 'mattn/vim-rsync'"
         echo "call plug#end()"
     } > "$HOME/.vimrc"
 
-    echo ".vimrc created and configured to include vim-rsync and your custom config."
-
-    # Configuration for vim-rsync
     {
         echo "let g:rsync#remote = {"
         echo "    \ 'host': 'user@yourserver.com',"
@@ -141,15 +189,8 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
         echo "    \ }"
     } >> "$VIM_CONFIG"
 
-    echo "vim-rsync configuration added to $VIM_CONFIG."
-
-    # Define the destination directory for Vim color schemes
     VIM_COLOR_DIR="$HOME/.config/vim/colors"
-
-    # Create the directory if it doesn't exist
     mkdir -p "$VIM_COLOR_DIR"
-
-    # Download the Dracula color scheme
     echo "Downloading Dracula color scheme..."
     if curl -o "$VIM_COLOR_DIR/dracula.vim" https://raw.githubusercontent.com/dracula/vim/master/colors/dracula.vim; then
         echo "Dracula color scheme downloaded."
@@ -157,31 +198,27 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
         echo "Error: Failed to download the Dracula color scheme."
         exit 1
     fi
-
     echo "Setup complete! Please restart Vim and run :PlugInstall to install vim-rsync."
 else
     echo "Skipping Vim installation."
 fi
 
-# Summary of installed tools
 echo -e "\n### Summary of Installed Tools ###"
-
-for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "API_TOOLS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS"; do
-    if [ ${#INSTALLED_$category[@]} -ne 0 ]; then
-        echo "${category//_/ }: ${!category[*]}"
+for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "API_TOOLS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS" "BROWSERS"; do
+    installed_var="INSTALLED_$category[@]"
+    if [ ${#installed_var} -ne 0 ]; then
+        echo "${category//_/ }: ${!installed_var}"
     fi
 done
 
-# bashrc
-## Check if SSH agent initialization is already in .bashrc
+# bashrc SSH agent addition
 if ! grep -q "eval \"\$(ssh-agent -s)\"" "$HOME/.bashrc"; then
     echo -e "\n# Start SSH agent" >> "$HOME/.bashrc"
     echo 'eval "$(ssh-agent -s)"' >> "$HOME/.bashrc"
     read -p "Enter your SSH key path (default: ~/.ssh/github_jbras_sea_ai): " ssh_key
     ssh_key=${ssh_key:-~/.ssh/github_jbras_sea_ai}
-    echo "ssh-add $ssh_key" >> "$HOME/.bashrc" # Modify this line for your key if needed
+    echo "ssh-add $ssh_key" >> "$HOME/.bashrc"
     echo "SSH agent initialization added to .bashrc."
 else
     echo "SSH agent initialization already exists in .bashrc."
 fi
-
