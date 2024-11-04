@@ -15,7 +15,11 @@ if command_exists pacman; then
     VENV_PACKAGE="python-virtualenv"  # Arch uses python-virtualenv
     JDK_PACKAGE="jdk-openjdk"         # Arch uses jdk-openjdk instead of default-jdk
     POSTMAN_PACKAGE="postman-bin"     # Use postman-bin from AUR for Arch
-    CHROME_PACKAGE="google-chrome"    # Use google-chrome from AUR for Arch
+    VS_CODE_PACKAGE="visual-studio-code-bin"  # VS Code from AUR
+    CHROME_PACKAGE="google-chrome"           # Google Chrome from AUR
+    MATTERMOST_PACKAGE="mattermost-desktop"  # Mattermost from AUR
+    TEAMS_PACKAGE="teams"                    # Microsoft Teams from AUR
+    SPOTIFY_PACKAGE="spotify"                # Spotify from AUR
 
     # Check for an AUR helper like yay or paru
     if command_exists yay; then
@@ -25,7 +29,11 @@ if command_exists pacman; then
     else
         echo "No AUR helper found. Please install 'yay' or 'paru' to proceed with AUR packages."
         POSTMAN_PACKAGE=""
+        VS_CODE_PACKAGE=""
         CHROME_PACKAGE=""
+        MATTERMOST_PACKAGE=""
+        TEAMS_PACKAGE=""
+        SPOTIFY_PACKAGE=""
     fi
 elif command_exists apt; then
     PACKAGE_MANAGER="apt install -y"
@@ -33,7 +41,16 @@ elif command_exists apt; then
     VENV_PACKAGE="python3-venv"       # Debian uses python3-venv
     JDK_PACKAGE="default-jdk"         # Debian uses default-jdk
     POSTMAN_PACKAGE="postman"         # Use postman directly for Debian
-    CHROME_PACKAGE="google-chrome-stable"  # Will add Google's repository for Chrome
+    VS_CODE_PACKAGE="code"            # VS Code for Debian
+    CHROME_PACKAGE="google-chrome-stable"  # Google Chrome for Debian
+    MATTERMOST_PACKAGE="mattermost-desktop"  # Mattermost for Debian
+    TEAMS_PACKAGE="teams"             # Microsoft Teams for Debian
+    SPOTIFY_PACKAGE="spotify-client"  # Spotify for Debian
+
+    # Spotify repository setup for Debian-based systems
+    curl -sS https://download.spotify.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg
+    echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
+    sudo apt update
 else
     echo "Unsupported package manager. Please use a Debian or Arch-based system."
     exit 1
@@ -48,7 +65,7 @@ COMPILERS=(gcc "$JDK_PACKAGE")
 INSTALLED_COMPILERS=()
 
 # Development tools
-DEV_UTILS=(docker "$VENV_PACKAGE")
+DEV_UTILS=(docker "$VENV_PACKAGE" "$VS_CODE_PACKAGE")
 INSTALLED_DEV_UTILS=()
 
 # API Tools
@@ -58,6 +75,18 @@ else
     API_TOOLS=(httpie)
 fi
 INSTALLED_API_TOOLS=()
+
+# Browsers
+BROWSERS=("$CHROME_PACKAGE" firefox)
+INSTALLED_BROWSERS=()
+
+# Entertainment
+ENTERTAINMENT=("$SPOTIFY_PACKAGE")
+INSTALLED_ENTERTAINMENT=()
+
+# Additional Applications
+EXTRA_APPS=("$MATTERMOST_PACKAGE" "$TEAMS_PACKAGE")
+INSTALLED_EXTRA_APPS=()
 
 # Build Tools
 BUILD_TOOLS=(cmake make)
@@ -71,20 +100,12 @@ INSTALLED_TERMINAL_TOOLS=()
 SEARCH_TOOLS=(ripgrep fzf screenfetch)
 INSTALLED_SEARCH_TOOLS=()
 
-# Browsers
-if [ -n "$CHROME_PACKAGE" ]; then
-    BROWSERS=("$CHROME_PACKAGE")
-else
-    BROWSERS=()
-fi
-INSTALLED_BROWSERS=()
-
 # Function to install missing tools with error handling
 install_tools() {
     local tool_category="$1"
     shift
     local tools=("$@")
-
+    
     missing_tools=()
     for tool in "${tools[@]}"; do
         if ! command_exists "$tool"; then
@@ -100,14 +121,8 @@ install_tools() {
             echo "Installing missing ${tool_category//_/ }: ${missing_tools[*]}..."
             $INSTALL_CMD
             for tool in "${missing_tools[@]}"; do
-                if [[ "$tool" == "postman-bin" || "$tool" == "google-chrome" ]] && [ -n "$AUR_INSTALLER" ]; then
+                if [[ "$tool" == *"-bin" || "$tool" == "google-chrome" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" ]] && [ -n "$AUR_INSTALLER" ]; then
                     $AUR_INSTALLER "$tool" || echo "Failed to install $tool from AUR."
-                elif [[ "$tool" == "google-chrome-stable" ]]; then
-                    # Add Google's repository and install Chrome on Debian-based systems
-                    wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-                    sudo sh -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
-                    sudo apt update
-                    sudo apt install -y google-chrome-stable
                 else
                     sudo $PACKAGE_MANAGER "$tool"
                 fi
@@ -125,10 +140,12 @@ install_tools "CORE_UTILS" "${CORE_UTILS[@]}"
 install_tools "COMPILERS" "${COMPILERS[@]}"
 install_tools "DEV_UTILS" "${DEV_UTILS[@]}"
 install_tools "API_TOOLS" "${API_TOOLS[@]}"
+install_tools "BROWSERS" "${BROWSERS[@]}"
+install_tools "ENTERTAINMENT" "${ENTERTAINMENT[@]}"
+install_tools "EXTRA_APPS" "${EXTRA_APPS[@]}"
 install_tools "BUILD_TOOLS" "${BUILD_TOOLS[@]}"
 install_tools "TERMINAL_TOOLS" "${TERMINAL_TOOLS[@]}"
 install_tools "SEARCH_TOOLS" "${SEARCH_TOOLS[@]}"
-install_tools "BROWSERS" "${BROWSERS[@]}"
 
 # Git Configuration
 read -p "Do you want to configure Git? [y/N] " git_configure
@@ -150,7 +167,7 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
     mkdir -p "$HOME/.config/vim"
     echo "Created vim configuration directory."
     mkdir -p "$HOME/.config/vim/autoload"
-
+    
     if [ ! -f "$HOME/.config/vim/autoload/plug.vim" ]; then
         echo "Installing vim-plug..."
         if ! curl -fLo "$HOME/.config/vim/autoload/plug.vim" --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim; then
@@ -162,15 +179,8 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
         echo "vim-plug is already installed."
     fi
 
-    # Check if jbras.vim exists in the script directory
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [ -f "$SCRIPT_DIR/.config/vim/jbras.vim" ]; then
-        cp "$SCRIPT_DIR/.config/vim/jbras.vim" "$HOME/.config/vim"
-        echo "Copied vim configuration file: jbras.vim"
-    else
-        echo "jbras.vim not found in $SCRIPT_DIR/.config/vim. Creating a default configuration."
-        echo "\" Default Vim configuration" > "$HOME/.config/vim/jbras.vim"
-    fi
+    cp .config/vim/jbras.vim "$HOME/.config/vim"
+    echo "Created vim configuration file: jbras.vim"
     VIM_CONFIG="$HOME/.config/vim/jbras.vim"
 
     {
@@ -183,10 +193,10 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
 
     {
         echo "let g:rsync#remote = {"
-        echo "    \ 'host': 'user@yourserver.com',"
-        echo "    \ 'port': 22,"
-        echo "    \ 'path': '/path/to/remote/directory',"
-        echo "    \ }"
+        echo "    \\ 'host': 'user@yourserver.com',"
+        echo "    \\ 'port': 22,"
+        echo "    \\ 'path': '/path/to/remote/directory',"
+        echo "    \\ }"
     } >> "$VIM_CONFIG"
 
     VIM_COLOR_DIR="$HOME/.config/vim/colors"
@@ -203,17 +213,16 @@ else
     echo "Skipping Vim installation."
 fi
 
-echo -e "\n### Summary of Installed Tools ###"
-for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "API_TOOLS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS" "BROWSERS"; do
-    installed_var="INSTALLED_$category[@]"
-    if [ ${#installed_var} -ne 0 ]; then
-        echo "${category//_/ }: ${!installed_var}"
+echo -e "\\n### Summary of Installed Tools ###"
+for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "API_TOOLS" "BROWSERS" "ENTERTAINMENT" "EXTRA_APPS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS"; do
+    if [ ${#INSTALLED_$category[@]} -ne 0 ]; then
+        echo "${category//_/ }: ${!category[*]}"
     fi
 done
 
 # bashrc SSH agent addition
-if ! grep -q "eval \"\$(ssh-agent -s)\"" "$HOME/.bashrc"; then
-    echo -e "\n# Start SSH agent" >> "$HOME/.bashrc"
+if ! grep -q "eval \"\\$(ssh-agent -s)\"" "$HOME/.bashrc"; then
+    echo -e "\\n# Start SSH agent" >> "$HOME/.bashrc"
     echo 'eval "$(ssh-agent -s)"' >> "$HOME/.bashrc"
     read -p "Enter your SSH key path (default: ~/.ssh/github_jbras_sea_ai): " ssh_key
     ssh_key=${ssh_key:-~/.ssh/github_jbras_sea_ai}
@@ -222,3 +231,4 @@ if ! grep -q "eval \"\$(ssh-agent -s)\"" "$HOME/.bashrc"; then
 else
     echo "SSH agent initialization already exists in .bashrc."
 fi
+
