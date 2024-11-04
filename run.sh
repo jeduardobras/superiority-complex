@@ -213,22 +213,5 @@ else
     echo "Skipping Vim installation."
 fi
 
-echo -e "\\n### Summary of Installed Tools ###"
-for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "API_TOOLS" "BROWSERS" "ENTERTAINMENT" "EXTRA_APPS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS"; do
-    if [ ${#INSTALLED_$category[@]} -ne 0 ]; then
-        echo "${category//_/ }: ${!category[*]}"
-    fi
-done
-
-# bashrc SSH agent addition
-if ! grep -q "eval \"\\$(ssh-agent -s)\"" "$HOME/.bashrc"; then
-    echo -e "\\n# Start SSH agent" >> "$HOME/.bashrc"
-    echo 'eval "$(ssh-agent -s)"' >> "$HOME/.bashrc"
-    read -p "Enter your SSH key path (default: ~/.ssh/github_jbras_sea_ai): " ssh_key
-    ssh_key=${ssh_key:-~/.ssh/github_jbras_sea_ai}
-    echo "ssh-add $ssh_key" >> "$HOME/.bashrc"
-    echo "SSH agent initialization added to .bashrc."
-else
-    echo "SSH agent initialization already exists in .bashrc."
-fi
+echo
 
