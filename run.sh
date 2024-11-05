@@ -15,6 +15,14 @@ if command_exists pacman; then
     VENV_PACKAGE="python-virtualenv"  # Arch uses python-virtualenv
     JDK_PACKAGE="jdk-openjdk"         # Arch uses jdk-openjdk instead of default-jdk
     POSTMAN_PACKAGE="postman-bin"     # Use postman-bin from AUR for Arch
+    VS_CODE_PACKAGE="visual-studio-code-bin"  # VS Code from AUR
+    CHROME_PACKAGE="google-chrome"           # Google Chrome from AUR    
+    MATTERMOST_PACKAGE="mattermost-desktop"  # Mattermost from AUR
+    TEAMS_PACKAGE="teams"                    # Microsoft Teams from AUR
+    SPOTIFY_PACKAGE="spotify"                # Spotify from AUR
+    INTELLIJ_PACKAGE="intellij-idea-community-edition"  # IntelliJ for Arch
+    PYCHARM_PACKAGE="pycharm-community-edition"         # PyCharm for Arch
+    DRACULA_KONSOLE_URL="https://raw.githubusercontent.com/dracula/konsole/master/Dracula.colorscheme"
     CHROME_PACKAGE="google-chrome"    # Use google-chrome from AUR for Arch
     MAILSPRING_PACKAGE="mailspring"   # Mailspring from AUR
 
@@ -26,7 +34,13 @@ if command_exists pacman; then
     else
         echo "No AUR helper found. Please install 'yay' or 'paru' to proceed with AUR packages."
         POSTMAN_PACKAGE=""
+        VS_CODE_PACKAGE=""
         CHROME_PACKAGE=""
+        MATTERMOST_PACKAGE=""
+        TEAMS_PACKAGE=""
+        SPOTIFY_PACKAGE=""
+        INTELLIJ_PACKAGE=""
+        PYCHARM_PACKAGE=""
         MAILSPRING_PACKAGE=""
     fi
 elif command_exists apt; then
@@ -35,6 +49,17 @@ elif command_exists apt; then
     VENV_PACKAGE="python3-venv"       # Debian uses python3-venv
     JDK_PACKAGE="default-jdk"         # Debian uses default-jdk
     POSTMAN_PACKAGE="postman"         # Use postman directly for Debian
+    VS_CODE_PACKAGE="code"            # VS Code for Debian
+    CHROME_PACKAGE="google-chrome-stable"  # Google Chrome for Debian
+    MATTERMOST_PACKAGE="mattermost-desktop"  # Mattermost for Debian
+    TEAMS_PACKAGE="teams"             # Microsoft Teams for Debian
+    SPOTIFY_PACKAGE="spotify-client"  # Spotify for Debian
+    INTELLIJ_PACKAGE="intellij-idea-community"  # IntelliJ for Debian
+    PYCHARM_PACKAGE="pycharm-community"         # PyCharm for Debian
+    # Spotify repository setup for Debian-based systems
+    curl -sS https://download.spotify.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg
+    echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
+    sudo apt update    
     CHROME_PACKAGE="google-chrome-stable"  # Will add Google's repository for Chrome
     MAILSPRING_PACKAGE="mailspring"
 else
@@ -51,8 +76,12 @@ COMPILERS=(gcc "$JDK_PACKAGE")
 INSTALLED_COMPILERS=()
 
 # Development tools
-DEV_UTILS=(docker "$VENV_PACKAGE")
+DEV_UTILS=(docker "$VENV_PACKAGE" "$VS_CODE_PACKAGE")
 INSTALLED_DEV_UTILS=()
+
+# IDEs
+IDEs=("$INTELLIJ_PACKAGE" "$PYCHARM_PACKAGE")
+INSTALLED_IDEs=()
 
 # API Tools
 if [ -n "$POSTMAN_PACKAGE" ]; then
@@ -61,6 +90,13 @@ else
     API_TOOLS=(httpie)
 fi
 INSTALLED_API_TOOLS=()
+
+# Entertainment
+ENTERTAINMENT=("$SPOTIFY_PACKAGE")
+INSTALLED_ENTERTAINMENT=()
+# Additional Applications
+EXTRA_APPS=("$MATTERMOST_PACKAGE" "$TEAMS_PACKAGE")
+INSTALLED_EXTRA_APPS=()
 
 # Build Tools
 BUILD_TOOLS=(cmake make)
@@ -111,7 +147,7 @@ install_tools() {
             echo "Installing missing ${tool_category//_/ }: ${missing_tools[*]}..."
             $INSTALL_CMD
             for tool in "${missing_tools[@]}"; do
-                if [[ "$tool" == "postman-bin" || "$tool" == "google-chrome" || "$tool" == "mailspring" ]] && [ -n "$AUR_INSTALLER" ]; then
+                if [[ "$tool" == "postman-bin" || "$tool" == "google-chrome" || "$tool" == "mailspring" || "$tool" == *"intellij"* || "$tool" == *"pycharm"* || "$tool" == *"-bin"* || "$tool" == "google-chrome" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" ]] && [ -n "$AUR_INSTALLER" ]; then
                     $AUR_INSTALLER "$tool" || echo "Failed to install $tool from AUR."
                 elif [[ "$tool" == "google-chrome-stable" ]]; then
                     # Add Google's repository and install Chrome on Debian-based systems
@@ -138,7 +174,11 @@ install_tools() {
 install_tools "CORE_UTILS" "${CORE_UTILS[@]}"
 install_tools "COMPILERS" "${COMPILERS[@]}"
 install_tools "DEV_UTILS" "${DEV_UTILS[@]}"
+install_tools "IDEs" "${IDEs[@]}"
 install_tools "API_TOOLS" "${API_TOOLS[@]}"
+install_tools "BROWSERS" "${BROWSERS[@]}"
+install_tools "ENTERTAINMENT" "${ENTERTAINMENT[@]}"
+install_tools "EXTRA_APPS" "${EXTRA_APPS[@]}"
 install_tools "BUILD_TOOLS" "${BUILD_TOOLS[@]}"
 install_tools "TERMINAL_TOOLS" "${TERMINAL_TOOLS[@]}"
 install_tools "SEARCH_TOOLS" "${SEARCH_TOOLS[@]}"
@@ -158,6 +198,17 @@ if [[ "$git_configure" =~ ^[Yy]$ ]]; then
 else
     echo "Skipping Git configuration."
 fi
+
+# Apply the Dracula theme to Konsole
+echo "Applying Dracula theme to Konsole..."
+mkdir -p ~/.local/share/konsole
+wget $DRACULA_KONSOLE_URL -O ~/.local/share/konsole/Dracula.colorscheme
+echo "Dracula theme for Konsole installed. Please set it manually through Konsole settings."
+# Add a bash alias to .bashrc
+echo "Adding a bash alias..."
+if ! grep -q "alias ll='ls -alF'" ~/.bashrc; then
+    echo "alias ll='ls -alF'" >> ~/.bashrc
+    echo "Added alias 'll' to ~/.bashrc"
 
 # Vim Installation and Configuration
 read -p "Do you want to install and configure Vim? [y/N] " vim_install
