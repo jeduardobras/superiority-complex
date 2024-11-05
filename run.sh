@@ -276,8 +276,8 @@ read -p "Do you want to install and configure Vim? [Y/n] " vim_install
 vim_install=${vim_install:-Y}
 if [[ "$vim_install" =~ ^[Yy]$ ]]; then
     echo "Configuring Vim..."
-    mkdir -p "$HOME/.config/vim/autoload"
-    VIM_AUTOLOAD_DIR="$HOME/.config/vim/autoload"
+    mkdir -p "$HOME/.vim/autoload" "$HOME/.vim/plugged"
+    VIM_AUTOLOAD_DIR="$HOME/.vim/autoload"
 
     if [ ! -f "$VIM_AUTOLOAD_DIR/plug.vim" ]; then
         echo "Installing vim-plug..."
@@ -290,17 +290,6 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
         echo "vim-plug is already installed."
     fi
 
-    VIM_CONFIG_DIR="$HOME/.config/vim"
-    VIM_CONFIG_FILE="$VIM_CONFIG_DIR/jbras.vim"
-
-    # Create a default Vim configuration if not present
-    if [ ! -f "$VIM_CONFIG_FILE" ]; then
-        echo "\" Default Vim configuration" > "$VIM_CONFIG_FILE"
-        echo "syntax on" >> "$VIM_CONFIG_FILE"
-        echo "set number" >> "$VIM_CONFIG_FILE"
-        echo "colorscheme dracula" >> "$VIM_CONFIG_FILE"
-    fi
-
     # Backup existing .vimrc if it exists
     if [ -f "$HOME/.vimrc" ]; then
         cp "$HOME/.vimrc" "$HOME/.vimrc.bak"
@@ -309,15 +298,18 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
 
     # Create .vimrc
     {
-        echo "set runtimepath+=~/.config/vim"
-        echo "source $VIM_CONFIG_FILE"
-        echo "call plug#begin('~/.config/vim/plugged')"
+        echo "\" Begin Vim configuration"
+        echo "call plug#begin('~/.vim/plugged')"
         echo "Plug 'dracula/vim', { 'as': 'dracula' }"
         echo "Plug 'mattn/vim-rsync'"
         echo "call plug#end()"
+        echo "syntax on"
+        echo "set number"
+        echo "colorscheme dracula"
     } > "$HOME/.vimrc"
 
-    VIM_COLOR_DIR="$HOME/.config/vim/colors"
+    # Install Dracula color scheme for Vim
+    VIM_COLOR_DIR="$HOME/.vim/colors"
     mkdir -p "$VIM_COLOR_DIR"
     echo "Downloading Dracula color scheme for Vim..."
     if curl -fLo "$VIM_COLOR_DIR/dracula.vim" --create-dirs https://raw.githubusercontent.com/dracula/vim/master/colors/dracula.vim; then
