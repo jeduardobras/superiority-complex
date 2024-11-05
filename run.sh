@@ -24,7 +24,6 @@ if command_exists pacman; then
     PYCHARM_PACKAGE="pycharm-community-edition"         # PyCharm for Arch
     DRACULA_KONSOLE_URL="https://raw.githubusercontent.com/dracula/konsole/master/Dracula.colorscheme"
     CHROME_PACKAGE="google-chrome"    # Use google-chrome from AUR for Arch
-    MAILSPRING_PACKAGE="mailspring"   # Mailspring from AUR
 
     # Check for an AUR helper like yay or paru
     if command_exists yay; then
@@ -61,7 +60,6 @@ elif command_exists apt; then
     echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
     sudo apt update    
     CHROME_PACKAGE="google-chrome-stable"  # Will add Google's repository for Chrome
-    MAILSPRING_PACKAGE="mailspring"
 else
     echo "Unsupported package manager. Please use a Debian or Arch-based system."
     exit 1
@@ -147,7 +145,7 @@ install_tools() {
             echo "Installing missing ${tool_category//_/ }: ${missing_tools[*]}..."
             $INSTALL_CMD
             for tool in "${missing_tools[@]}"; do
-                if [[ "$tool" == "postman-bin" || "$tool" == "google-chrome" || "$tool" == "mailspring" || "$tool" == *"intellij"* || "$tool" == *"pycharm"* || "$tool" == *"-bin"* || "$tool" == "google-chrome" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" ]] && [ -n "$AUR_INSTALLER" ]; then
+                if [[ "$tool" == "postman-bin" || "$tool" == "google-chrome" || "$tool" == *"intellij"* || "$tool" == *"pycharm"* || "$tool" == *"-bin"* || "$tool" == "google-chrome" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" ]] && [ -n "$AUR_INSTALLER" ]; then
                     $AUR_INSTALLER "$tool" || echo "Failed to install $tool from AUR."
                 elif [[ "$tool" == "google-chrome-stable" ]]; then
                     # Add Google's repository and install Chrome on Debian-based systems
@@ -155,8 +153,6 @@ install_tools() {
                     sudo sh -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list'
                     sudo apt update
                     sudo apt install -y google-chrome-stable
-                elif [[ "$tool" == "mailspring" ]] && [ "$PACKAGE_MANAGER" == "apt install -y" ]; then
-                    # Install Mailspring on Debian-based systems
                     sudo snap install mailspring
                 else
                     sudo $PACKAGE_MANAGER "$tool"
