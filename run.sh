@@ -285,3 +285,5 @@ else
     echo "SSH agent initialization already exists in .bashrc."
 fi
 
+echo "Finished environment setup procedures" 
+exit 0
