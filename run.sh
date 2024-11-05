@@ -305,19 +305,9 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
         echo "call plug#end()"
         echo "syntax on"
         echo "set number"
+        echo "set termguicolors"
         echo "colorscheme dracula"
     } > "$HOME/.vimrc"
-
-    # Install Dracula color scheme for Vim
-    VIM_COLOR_DIR="$HOME/.vim/colors"
-    mkdir -p "$VIM_COLOR_DIR"
-    echo "Downloading Dracula color scheme for Vim..."
-    if curl -fLo "$VIM_COLOR_DIR/dracula.vim" --create-dirs https://raw.githubusercontent.com/dracula/vim/master/colors/dracula.vim; then
-        echo "Dracula color scheme downloaded."
-    else
-        echo "Error: Failed to download the Dracula color scheme."
-        exit 1
-    fi
 
     echo "Installing Vim plugins..."
     vim +PlugInstall +qall
