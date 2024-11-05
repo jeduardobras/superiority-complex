@@ -262,6 +262,15 @@ else
     echo "Alias 'll' already exists in ~/.bashrc."
 fi
 
+# Add custom PS1 prompt to .bashrc
+echo "Setting custom PS1 prompt..."
+if ! grep -q "export PS1=" ~/.bashrc; then
+    echo 'export PS1="\[\e[1;32m\]\u@\h \[\e[1;34m\]\w\[\e[0m\] $ "' >> ~/.bashrc
+    echo "Custom PS1 prompt added to ~/.bashrc."
+else
+    echo "PS1 prompt already customized in ~/.bashrc."
+fi
+
 # Vim Installation and Configuration
 read -p "Do you want to install and configure Vim? [Y/n] " vim_install
 vim_install=${vim_install:-Y}
