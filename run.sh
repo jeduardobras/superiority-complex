@@ -16,14 +16,14 @@ if command_exists pacman; then
     JDK_PACKAGE="jdk-openjdk"         # Arch uses jdk-openjdk instead of default-jdk
     POSTMAN_PACKAGE="postman-bin"     # Use postman-bin from AUR for Arch
     VS_CODE_PACKAGE="visual-studio-code-bin"  # VS Code from AUR
-    CHROME_PACKAGE="google-chrome"           # Google Chrome from AUR    
+    CHROME_PACKAGE="google-chrome"    # Google Chrome from AUR
     MATTERMOST_PACKAGE="mattermost-desktop"  # Mattermost from AUR
     TEAMS_PACKAGE="teams"                    # Microsoft Teams from AUR
     SPOTIFY_PACKAGE="spotify"                # Spotify from AUR
     INTELLIJ_PACKAGE="intellij-idea-community-edition"  # IntelliJ for Arch
     PYCHARM_PACKAGE="pycharm-community-edition"         # PyCharm for Arch
+    MAILSPRING_PACKAGE="mailspring"          # Mailspring from AUR
     DRACULA_KONSOLE_URL="https://raw.githubusercontent.com/dracula/konsole/master/Dracula.colorscheme"
-    CHROME_PACKAGE="google-chrome"    # Use google-chrome from AUR for Arch
 
     # Check for an AUR helper like yay or paru
     if command_exists yay; then
@@ -47,7 +47,7 @@ elif command_exists apt; then
     INSTALL_CMD="sudo apt update && sudo apt install -y"
     VENV_PACKAGE="python3-venv"       # Debian uses python3-venv
     JDK_PACKAGE="default-jdk"         # Debian uses default-jdk
-    POSTMAN_PACKAGE="postman"         # Use postman directly for Debian
+    POSTMAN_PACKAGE=""                # Postman installation handled separately
     VS_CODE_PACKAGE="code"            # VS Code for Debian
     CHROME_PACKAGE="google-chrome-stable"  # Google Chrome for Debian
     MATTERMOST_PACKAGE="mattermost-desktop"  # Mattermost for Debian
@@ -55,11 +55,21 @@ elif command_exists apt; then
     SPOTIFY_PACKAGE="spotify-client"  # Spotify for Debian
     INTELLIJ_PACKAGE="intellij-idea-community"  # IntelliJ for Debian
     PYCHARM_PACKAGE="pycharm-community"         # PyCharm for Debian
+    MAILSPRING_PACKAGE="mailspring"   # Mailspring via Snap or apt
+
     # Spotify repository setup for Debian-based systems
-    curl -sS https://download.spotify.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
-    sudo apt update    
-    CHROME_PACKAGE="google-chrome-stable"  # Will add Google's repository for Chrome
+    if ! grep -q "spotify" /etc/apt/sources.list.d/* 2>/dev/null; then
+        curl -sS https://download.spotify.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
+    fi
+
+    # Add Google's repository for Chrome
+    if ! grep -q "dl.google.com/linux/chrome/deb/" /etc/apt/sources.list.d/* 2>/dev/null; then
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+    fi
+
+    sudo apt update
 else
     echo "Unsupported package manager. Please use a Debian or Arch-based system."
     exit 1
@@ -82,18 +92,16 @@ IDEs=("$INTELLIJ_PACKAGE" "$PYCHARM_PACKAGE")
 INSTALLED_IDEs=()
 
 # API Tools
-if [ -n "$POSTMAN_PACKAGE" ]; then
-    API_TOOLS=(httpie "$POSTMAN_PACKAGE")
-else
-    API_TOOLS=(httpie)
-fi
+API_TOOLS=(httpie)
+[ -n "$POSTMAN_PACKAGE" ] && API_TOOLS+=("$POSTMAN_PACKAGE")
 INSTALLED_API_TOOLS=()
 
 # Entertainment
 ENTERTAINMENT=("$SPOTIFY_PACKAGE")
 INSTALLED_ENTERTAINMENT=()
+
 # Additional Applications
-EXTRA_APPS=("$MATTERMOST_PACKAGE" "$TEAMS_PACKAGE")
+EXTRA_APPS=("$MATTERMOST_PACKAGE" "$TEAMS_PACKAGE" "$MAILSPRING_PACKAGE")
 INSTALLED_EXTRA_APPS=()
 
 # Build Tools
@@ -109,28 +117,17 @@ SEARCH_TOOLS=(ripgrep fzf screenfetch)
 INSTALLED_SEARCH_TOOLS=()
 
 # Browsers
-if [ -n "$CHROME_PACKAGE" ]; then
-    BROWSERS=("$CHROME_PACKAGE")
-else
-    BROWSERS=()
-fi
+BROWSERS=()
+[ -n "$CHROME_PACKAGE" ] && BROWSERS+=("$CHROME_PACKAGE")
 INSTALLED_BROWSERS=()
-
-# Email Clients
-if [ -n "$MAILSPRING_PACKAGE" ]; then
-    EMAIL_CLIENTS=("$MAILSPRING_PACKAGE")
-else
-    EMAIL_CLIENTS=()
-fi
-INSTALLED_EMAIL_CLIENTS=()
 
 # Function to install missing tools with error handling
 install_tools() {
     local tool_category="$1"
     shift
     local tools=("$@")
+    local missing_tools=()
 
-    missing_tools=()
     for tool in "${tools[@]}"; do
         if ! command_exists "$tool"; then
             missing_tools+=("$tool")
@@ -140,21 +137,32 @@ install_tools() {
     done
 
     if [ ${#missing_tools[@]} -ne 0 ]; then
-        read -p "Do you want to install missing ${tool_category//_/ }? (${missing_tools[*]}): [y/N] " answer
+        read -p "Do you want to install missing ${tool_category//_/ }? (${missing_tools[*]}): [Y/n] " answer
+        answer=${answer:-Y}
         if [[ "$answer" =~ ^[Yy]$ ]]; then
             echo "Installing missing ${tool_category//_/ }: ${missing_tools[*]}..."
-            $INSTALL_CMD
+            # Update repositories only once per installation
+            if [ "$INSTALL_CMD_RUN" != "true" ]; then
+                $INSTALL_CMD
+                INSTALL_CMD_RUN="true"
+            fi
             for tool in "${missing_tools[@]}"; do
-                if [[ "$tool" == "postman-bin" || "$tool" == "google-chrome" || "$tool" == *"intellij"* || "$tool" == *"pycharm"* || "$tool" == *"-bin"* || "$tool" == "google-chrome" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" ]] && [ -n "$AUR_INSTALLER" ]; then
-                    $AUR_INSTALLER "$tool" || echo "Failed to install $tool from AUR."
+                if [[ "$tool" == "postman-bin" || "$tool" == *"-bin" || "$tool" == "$CHROME_PACKAGE" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" || "$tool" == "$INTELLIJ_PACKAGE" || "$tool" == "$PYCHARM_PACKAGE" || "$tool" == "$MAILSPRING_PACKAGE" ]] && [ -n "$AUR_INSTALLER" ]; then
+                    echo "Installing $tool from AUR..."
+                    if ! $AUR_INSTALLER "$tool"; then
+                        echo "Failed to install $tool from AUR."
+                    fi
                 elif [[ "$tool" == "google-chrome-stable" ]]; then
-                    # Add Google's repository and install Chrome on Debian-based systems
-                    wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-                    sudo sh -c 'echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list'
-                    sudo apt update
+                    echo "Installing Google Chrome..."
                     sudo apt install -y google-chrome-stable
+                elif [[ "$tool" == "mailspring" && "$PACKAGE_MANAGER" == "apt install -y" ]]; then
+                    echo "Installing Mailspring via Snap..."
                     sudo snap install mailspring
+                elif [[ "$tool" == "postman" && "$PACKAGE_MANAGER" == "apt install -y" ]]; then
+                    echo "Installing Postman via Snap..."
+                    sudo snap install postman
                 else
+                    echo "Installing $tool..."
                     sudo $PACKAGE_MANAGER "$tool"
                 fi
             done
@@ -165,6 +173,9 @@ install_tools() {
         echo "All ${tool_category//_/ } are already installed."
     fi
 }
+
+# Initialize INSTALL_CMD_RUN variable
+INSTALL_CMD_RUN="false"
 
 # Check and install tools
 install_tools "CORE_UTILS" "${CORE_UTILS[@]}"
@@ -178,11 +189,11 @@ install_tools "EXTRA_APPS" "${EXTRA_APPS[@]}"
 install_tools "BUILD_TOOLS" "${BUILD_TOOLS[@]}"
 install_tools "TERMINAL_TOOLS" "${TERMINAL_TOOLS[@]}"
 install_tools "SEARCH_TOOLS" "${SEARCH_TOOLS[@]}"
-install_tools "BROWSERS" "${BROWSERS[@]}"
 install_tools "EMAIL_CLIENTS" "${EMAIL_CLIENTS[@]}"
 
 # Git Configuration
-read -p "Do you want to configure Git? [y/N] " git_configure
+read -p "Do you want to configure Git? [Y/n] " git_configure
+git_configure=${git_configure:-Y}
 if [[ "$git_configure" =~ ^[Yy]$ ]]; then
     echo "Configuring Git account..."
     read -p "Enter your Git username: " git_username
@@ -195,27 +206,39 @@ else
     echo "Skipping Git configuration."
 fi
 
-# Apply the Dracula theme to Konsole
-echo "Applying Dracula theme to Konsole..."
-mkdir -p ~/.local/share/konsole
-wget $DRACULA_KONSOLE_URL -O ~/.local/share/konsole/Dracula.colorscheme
-echo "Dracula theme for Konsole installed. Please set it manually through Konsole settings."
+# Apply the Dracula theme to Konsole (only if Konsole is installed)
+if command_exists konsole; then
+    echo "Applying Dracula theme to Konsole..."
+    mkdir -p ~/.local/share/konsole
+    if wget -q "$DRACULA_KONSOLE_URL" -O ~/.local/share/konsole/Dracula.colorscheme; then
+        echo "Dracula theme for Konsole installed. Please set it manually through Konsole settings."
+    else
+        echo "Failed to download Dracula theme for Konsole."
+    fi
+else
+    echo "Konsole is not installed. Skipping Dracula theme application."
+fi
+
 # Add a bash alias to .bashrc
 echo "Adding a bash alias..."
 if ! grep -q "alias ll='ls -alF'" ~/.bashrc; then
     echo "alias ll='ls -alF'" >> ~/.bashrc
     echo "Added alias 'll' to ~/.bashrc"
+else
+    echo "Alias 'll' already exists in ~/.bashrc."
+fi
 
 # Vim Installation and Configuration
-read -p "Do you want to install and configure Vim? [y/N] " vim_install
+read -p "Do you want to install and configure Vim? [Y/n] " vim_install
+vim_install=${vim_install:-Y}
 if [[ "$vim_install" =~ ^[Yy]$ ]]; then
-    mkdir -p "$HOME/.config/vim"
-    echo "Created vim configuration directory."
+    echo "Configuring Vim..."
     mkdir -p "$HOME/.config/vim/autoload"
+    VIM_AUTOLOAD_DIR="$HOME/.config/vim/autoload"
 
-    if [ ! -f "$HOME/.config/vim/autoload/plug.vim" ]; then
+    if [ ! -f "$VIM_AUTOLOAD_DIR/plug.vim" ]; then
         echo "Installing vim-plug..."
-        if ! curl -fLo "$HOME/.config/vim/autoload/plug.vim" --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim; then
+        if ! curl -fLo "$VIM_AUTOLOAD_DIR/plug.vim" --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim; then
             echo "Failed to install vim-plug. Exiting..."
             exit 1
         fi
@@ -224,52 +247,57 @@ if [[ "$vim_install" =~ ^[Yy]$ ]]; then
         echo "vim-plug is already installed."
     fi
 
-    # Check if jbras.vim exists in the script directory
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    if [ -f "$SCRIPT_DIR/.config/vim/jbras.vim" ]; then
-        cp "$SCRIPT_DIR/.config/vim/jbras.vim" "$HOME/.config/vim"
-        echo "Copied vim configuration file: jbras.vim"
-    else
-        echo "jbras.vim not found in $SCRIPT_DIR/.config/vim. Creating a default configuration."
-        echo "\" Default Vim configuration" > "$HOME/.config/vim/jbras.vim"
-    fi
-    VIM_CONFIG="$HOME/.config/vim/jbras.vim"
+    VIM_CONFIG_DIR="$HOME/.config/vim"
+    VIM_CONFIG_FILE="$VIM_CONFIG_DIR/jbras.vim"
 
+    # Create a default Vim configuration if not present
+    if [ ! -f "$VIM_CONFIG_FILE" ]; then
+        echo "\" Default Vim configuration" > "$VIM_CONFIG_FILE"
+        echo "syntax on" >> "$VIM_CONFIG_FILE"
+        echo "set number" >> "$VIM_CONFIG_FILE"
+        echo "colorscheme dracula" >> "$VIM_CONFIG_FILE"
+    fi
+
+    # Backup existing .vimrc if it exists
+    if [ -f "$HOME/.vimrc" ]; then
+        cp "$HOME/.vimrc" "$HOME/.vimrc.bak"
+        echo "Backed up existing .vimrc to .vimrc.bak"
+    fi
+
+    # Create .vimrc
     {
         echo "set runtimepath+=~/.config/vim"
-        echo "source $VIM_CONFIG"
+        echo "source $VIM_CONFIG_FILE"
         echo "call plug#begin('~/.config/vim/plugged')"
+        echo "Plug 'dracula/vim', { 'as': 'dracula' }"
         echo "Plug 'mattn/vim-rsync'"
         echo "call plug#end()"
     } > "$HOME/.vimrc"
 
-    {
-        echo "let g:rsync#remote = {"
-        echo "    \ 'host': 'user@yourserver.com',"
-        echo "    \ 'port': 22,"
-        echo "    \ 'path': '/path/to/remote/directory',"
-        echo "    \ }"
-    } >> "$VIM_CONFIG"
-
     VIM_COLOR_DIR="$HOME/.config/vim/colors"
     mkdir -p "$VIM_COLOR_DIR"
-    echo "Downloading Dracula color scheme..."
-    if curl -o "$VIM_COLOR_DIR/dracula.vim" https://raw.githubusercontent.com/dracula/vim/master/colors/dracula.vim; then
+    echo "Downloading Dracula color scheme for Vim..."
+    if curl -fLo "$VIM_COLOR_DIR/dracula.vim" --create-dirs https://raw.githubusercontent.com/dracula/vim/master/colors/dracula.vim; then
         echo "Dracula color scheme downloaded."
     else
         echo "Error: Failed to download the Dracula color scheme."
         exit 1
     fi
-    echo "Setup complete! Please restart Vim and run :PlugInstall to install vim-rsync."
+
+    echo "Installing Vim plugins..."
+    vim +PlugInstall +qall
+
+    echo "Vim configuration complete!"
 else
     echo "Skipping Vim installation."
 fi
 
 echo -e "\n### Summary of Installed Tools ###"
-for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "API_TOOLS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS" "BROWSERS" "EMAIL_CLIENTS"; do
+for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "IDEs" "API_TOOLS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS" "BROWSERS" "ENTERTAINMENT" "EXTRA_APPS"; do
     installed_var="INSTALLED_$category[@]"
-    if [ ${#installed_var} -ne 0 ]; then
-        echo "${category//_/ }: ${!installed_var}"
+    installed_tools=("${!installed_var}")
+    if [ ${#installed_tools[@]} -ne 0 ]; then
+        echo "${category//_/ }: ${installed_tools[*]}"
     fi
 done
 
@@ -277,13 +305,19 @@ done
 if ! grep -q "eval \"\$(ssh-agent -s)\"" "$HOME/.bashrc"; then
     echo -e "\n# Start SSH agent" >> "$HOME/.bashrc"
     echo 'eval "$(ssh-agent -s)"' >> "$HOME/.bashrc"
-    read -p "Enter your SSH key path (default: ~/.ssh/github_jbras_sea_ai): " ssh_key
-    ssh_key=${ssh_key:-~/.ssh/github_jbras_sea_ai}
-    echo "ssh-add $ssh_key" >> "$HOME/.bashrc"
-    echo "SSH agent initialization added to .bashrc."
+    read -p "Enter your SSH key path (default: ~/.ssh/id_rsa): " ssh_key
+    ssh_key=${ssh_key:-~/.ssh/id_rsa}
+    if [ -f "$ssh_key" ]; then
+        echo "Adding SSH key to agent..."
+        echo "ssh-add $ssh_key" >> "$HOME/.bashrc"
+        echo "SSH agent initialization added to .bashrc."
+    else
+        echo "SSH key not found at $ssh_key. Please generate it using 'ssh-keygen'."
+    fi
 else
     echo "SSH agent initialization already exists in .bashrc."
 fi
 
-echo "Finished environment setup procedures" 
+echo "Finished environment setup procedures"
 exit 0
+
