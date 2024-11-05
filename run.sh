@@ -22,7 +22,9 @@ if command_exists pacman; then
     SPOTIFY_PACKAGE="spotify"                # Spotify from AUR
     INTELLIJ_PACKAGE="intellij-idea-community-edition"  # IntelliJ for Arch
     PYCHARM_PACKAGE="pycharm-community-edition"         # PyCharm for Arch
-    MAILSPRING_PACKAGE="mailspring"          # Mailspring from AUR
+    EMAIL_CLIENT_PACKAGE="kmail"             # KMail for Arch
+    ZOOM_PACKAGE="zoom"                      # Zoom from AUR
+    OBSIDIAN_PACKAGE="obsidian"              # Obsidian from AUR
     DRACULA_KONSOLE_URL="https://raw.githubusercontent.com/dracula/konsole/master/Dracula.colorscheme"
 
     # Check for an AUR helper like yay or paru
@@ -40,7 +42,9 @@ if command_exists pacman; then
         SPOTIFY_PACKAGE=""
         INTELLIJ_PACKAGE=""
         PYCHARM_PACKAGE=""
-        MAILSPRING_PACKAGE=""
+        EMAIL_CLIENT_PACKAGE=""
+        ZOOM_PACKAGE=""
+        OBSIDIAN_PACKAGE=""
     fi
 elif command_exists apt; then
     PACKAGE_MANAGER="apt install -y"
@@ -55,7 +59,9 @@ elif command_exists apt; then
     SPOTIFY_PACKAGE="spotify-client"  # Spotify for Debian
     INTELLIJ_PACKAGE="intellij-idea-community"  # IntelliJ for Debian
     PYCHARM_PACKAGE="pycharm-community"         # PyCharm for Debian
-    MAILSPRING_PACKAGE="mailspring"   # Mailspring via Snap or apt
+    EMAIL_CLIENT_PACKAGE="kmail"      # KMail for Debian
+    ZOOM_PACKAGE="zoom"               # Zoom for Debian
+    OBSIDIAN_PACKAGE="obsidian"       # Obsidian AppImage or .deb
 
     # Spotify repository setup for Debian-based systems
     if ! grep -q "spotify" /etc/apt/sources.list.d/* 2>/dev/null; then
@@ -67,6 +73,12 @@ elif command_exists apt; then
     if ! grep -q "dl.google.com/linux/chrome/deb/" /etc/apt/sources.list.d/* 2>/dev/null; then
         wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
         echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+    fi
+
+    # Zoom repository setup for Debian-based systems
+    if ! grep -q "zoom" /etc/apt/sources.list.d/* 2>/dev/null; then
+        wget -O- https://zoom.us/linux/download/pubkey | sudo apt-key add -
+        echo "deb [arch=amd64] https://zoom.us/linux/debian stable main" | sudo tee /etc/apt/sources.list.d/zoom.list
     fi
 
     sudo apt update
@@ -101,7 +113,7 @@ ENTERTAINMENT=("$SPOTIFY_PACKAGE")
 INSTALLED_ENTERTAINMENT=()
 
 # Additional Applications
-EXTRA_APPS=("$MATTERMOST_PACKAGE" "$TEAMS_PACKAGE" "$MAILSPRING_PACKAGE")
+EXTRA_APPS=("$MATTERMOST_PACKAGE" "$TEAMS_PACKAGE")
 INSTALLED_EXTRA_APPS=()
 
 # Build Tools
@@ -120,6 +132,18 @@ INSTALLED_SEARCH_TOOLS=()
 BROWSERS=()
 [ -n "$CHROME_PACKAGE" ] && BROWSERS+=("$CHROME_PACKAGE")
 INSTALLED_BROWSERS=()
+
+# Email Clients
+EMAIL_CLIENTS=("$EMAIL_CLIENT_PACKAGE")
+INSTALLED_EMAIL_CLIENTS=()
+
+# Video Conferencing Tools
+VIDEO_CONFERENCING=("$ZOOM_PACKAGE")
+INSTALLED_VIDEO_CONFERENCING=()
+
+# Notes Applications
+NOTES_APPS=("$OBSIDIAN_PACKAGE")
+INSTALLED_NOTES_APPS=()
 
 # Function to install missing tools with error handling
 install_tools() {
@@ -147,7 +171,7 @@ install_tools() {
                 INSTALL_CMD_RUN="true"
             fi
             for tool in "${missing_tools[@]}"; do
-                if [[ "$tool" == "postman-bin" || "$tool" == *"-bin" || "$tool" == "$CHROME_PACKAGE" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" || "$tool" == "$INTELLIJ_PACKAGE" || "$tool" == "$PYCHARM_PACKAGE" || "$tool" == "$MAILSPRING_PACKAGE" ]] && [ -n "$AUR_INSTALLER" ]; then
+                if [[ "$tool" == "postman-bin" || "$tool" == *"-bin" || "$tool" == "$CHROME_PACKAGE" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" || "$tool" == "$INTELLIJ_PACKAGE" || "$tool" == "$PYCHARM_PACKAGE" || "$tool" == "$EMAIL_CLIENT_PACKAGE" || "$tool" == "$ZOOM_PACKAGE" || "$tool" == "$OBSIDIAN_PACKAGE" ]] && [ -n "$AUR_INSTALLER" ]; then
                     echo "Installing $tool from AUR..."
                     if ! $AUR_INSTALLER "$tool"; then
                         echo "Failed to install $tool from AUR."
@@ -155,12 +179,20 @@ install_tools() {
                 elif [[ "$tool" == "google-chrome-stable" ]]; then
                     echo "Installing Google Chrome..."
                     sudo apt install -y google-chrome-stable
-                elif [[ "$tool" == "mailspring" && "$PACKAGE_MANAGER" == "apt install -y" ]]; then
-                    echo "Installing Mailspring via Snap..."
-                    sudo snap install mailspring
-                elif [[ "$tool" == "postman" && "$PACKAGE_MANAGER" == "apt install -y" ]]; then
-                    echo "Installing Postman via Snap..."
-                    sudo snap install postman
+                elif [[ "$tool" == "zoom" && "$PACKAGE_MANAGER" == "apt install -y" ]]; then
+                    echo "Installing Zoom..."
+                    sudo apt install -y zoom
+                elif [[ "$tool" == "obsidian" ]]; then
+                    echo "Installing Obsidian..."
+                    if [ "$PACKAGE_MANAGER" == "apt install -y" ]; then
+                        OBSIDIAN_DEB_URL=$(curl -s https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest | grep "browser_download_url.*amd64.deb" | cut -d '"' -f 4)
+                        wget "$OBSIDIAN_DEB_URL" -O /tmp/obsidian.deb
+                        sudo dpkg -i /tmp/obsidian.deb
+                        sudo apt -f install -y
+                        rm /tmp/obsidian.deb
+                    elif [ -n "$AUR_INSTALLER" ]; then
+                        $AUR_INSTALLER obsidian
+                    fi
                 else
                     echo "Installing $tool..."
                     sudo $PACKAGE_MANAGER "$tool"
@@ -190,6 +222,8 @@ install_tools "BUILD_TOOLS" "${BUILD_TOOLS[@]}"
 install_tools "TERMINAL_TOOLS" "${TERMINAL_TOOLS[@]}"
 install_tools "SEARCH_TOOLS" "${SEARCH_TOOLS[@]}"
 install_tools "EMAIL_CLIENTS" "${EMAIL_CLIENTS[@]}"
+install_tools "VIDEO_CONFERENCING" "${VIDEO_CONFERENCING[@]}"
+install_tools "NOTES_APPS" "${NOTES_APPS[@]}"
 
 # Git Configuration
 read -p "Do you want to configure Git? [Y/n] " git_configure
@@ -293,7 +327,7 @@ else
 fi
 
 echo -e "\n### Summary of Installed Tools ###"
-for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "IDEs" "API_TOOLS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS" "BROWSERS" "ENTERTAINMENT" "EXTRA_APPS"; do
+for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "IDEs" "API_TOOLS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS" "BROWSERS" "ENTERTAINMENT" "EXTRA_APPS" "EMAIL_CLIENTS" "VIDEO_CONFERENCING" "NOTES_APPS"; do
     installed_var="INSTALLED_$category[@]"
     installed_tools=("${!installed_var}")
     if [ ${#installed_tools[@]} -ne 0 ]; then
