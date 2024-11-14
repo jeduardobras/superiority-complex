@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Install necessary tools if they are not already installed
 echo "Checking for required tools..."
