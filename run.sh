@@ -269,7 +269,7 @@ else
     echo "Alias 'll' already exists in $CONFIG_FILE."
 fi
 
-# Add custom PS1 prompt to .bashrc
+# Add custom PS1 prompt to shell 
 if [[ "$DEFAULT_SHELL" != "zsh" ]]; then
     if ! grep -q "export PS1=" "$CONFIG_FILE"; then
         echo 'export PS1="\[\e[1;32m\]\u@\h \[\e[1;34m\]\w\[\e[0m\] $ "' >> "$CONFIG_FILE"
