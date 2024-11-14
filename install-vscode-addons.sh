@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-# Array of additional VS Code extensions to be installed
+# Array of Visual Studio Code extensions to be installed
 extensions=(
   "ms-python.python"  # Python language support
   "esbenp.prettier-vscode"  # Prettier for code formatting
@@ -33,13 +33,14 @@ extensions=(
   "dracula-theme.theme-dracula"  # Dracula theme
 )
 
+echo "Do you want to install all extensions at once? (y/n)"
+read -r install_all
+
 echo "Starting installation of Visual Studio Code extensions..."
 
-# Loop through and prompt before installing each extension
+# Loop through extensions
 for extension in $extensions; do
-  echo "Do you want to install $extension? (y/n)"
-  read -r answer
-  if [[ $answer =~ ^[Yy]$ ]]; then
+  if [[ $install_all =~ ^[Yy]$ ]]; then
     echo "Installing $extension..."
     code --install-extension $extension
     if [[ $? -eq 0 ]]; then
@@ -48,7 +49,19 @@ for extension in $extensions; do
       echo "Failed to install $extension or it may already be installed."
     fi
   else
-    echo "Skipping $extension."
+    echo "Do you want to install $extension? (y/n)"
+    read -r answer
+    if [[ $answer =~ ^[Yy]$ ]]; then
+      echo "Installing $extension..."
+      code --install-extension $extension
+      if [[ $? -eq 0 ]]; then
+        echo "$extension installed successfully."
+      else
+        echo "Failed to install $extension or it may already be installed."
+      fi
+    else
+      echo "Skipping $extension."
+    fi
   fi
 done
 
