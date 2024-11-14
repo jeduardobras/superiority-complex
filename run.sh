@@ -26,7 +26,7 @@ add_ssh_agent() {
         echo -e "\n# Start SSH agent" | tee -a "$CONFIG_FILE" > /dev/null
         echo 'eval "$(ssh-agent -s)"' | tee -a "$CONFIG_FILE" > /dev/null
         read -p "Enter your SSH key path (default: ~/.ssh/id_rsa): " ssh_key
-        ssh_key=${ssh_key:-~/.ssh/id_rsa}
+        ssh_key=${ssh_key:-~/.ssh/jbras_rubbersoul_github}
         if [ -f "$ssh_key" ]; then
             echo "Adding SSH key to agent..."
             echo "ssh-add $ssh_key" | tee -a "$CONFIG_FILE" > /dev/null
@@ -60,7 +60,7 @@ echo "Finished environment setup procedures"
 # Detect if the OS is Arch-based or Debian-based
 if command_exists pacman; then
     PACKAGE_MANAGER="pacman -S --noconfirm"
-    INSTALL_CMD="sudo pacman -Syu --noconfirm"
+    INSTALL_CMD="pacman -Syu --noconfirm"
     VENV_PACKAGE="python-virtualenv"  # Arch uses python-virtualenv
     JDK_PACKAGE="jdk-openjdk"         # Arch uses jdk-openjdk instead of default-jdk
     POSTMAN_PACKAGE="postman-bin"     # Use postman-bin from AUR for Arch
