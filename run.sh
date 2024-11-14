@@ -1,32 +1,13 @@
-#!/bin/sh
-
-# Install necessary tools if they are not already installed
-echo "Checking for required tools..."
+#!/bin/zsh
 
 # Function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-#!/bin/bash
-
-# Function to detect default shell and set configuration file
-set_config_file() {
-    DEFAULT_SHELL=$(basename "$SHELL")
-    if [[ "$DEFAULT_SHELL" == "zsh" ]]; then
-        CONFIG_FILE="$HOME/.zshrc"
-    else
-        CONFIG_FILE="$HOME/.bashrc"
-    fi
-}
-
-# Detect and set config file
-set_config_file
-
-# Function to check if a command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
+# Set Zsh configuration file
+CONFIG_FILE="$HOME/.zshrc"
+echo "Using configuration file: $CONFIG_FILE"
 
 # Function to add alias to config file
 add_alias() {
@@ -58,9 +39,13 @@ add_ssh_agent() {
     fi
 }
 
-# Add custom PS1 prompt to shell for both Bash and Zsh
+# Add a shell alias
+echo "Adding a shell alias..."
+add_alias "alias ll='ls -alF'"
+
+# Add custom PS1 prompt to Zsh
 if ! grep -q "export PS1=" "$CONFIG_FILE"; then
-    echo 'export PS1="\[\e[1;32m\]\u@\h \[\e[1;34m\]\w\[\e[0m\] $ "' | tee -a "$CONFIG_FILE" > /dev/null
+    echo 'export PS1="%F{green}%n@%m %F{blue}%~%f $ "' | tee -a "$CONFIG_FILE" > /dev/null
     echo "Custom PS1 prompt added to $CONFIG_FILE."
 else
     echo "PS1 prompt already customized in $CONFIG_FILE."
@@ -71,7 +56,6 @@ echo "Configuring SSH agent..."
 add_ssh_agent
 
 echo "Finished environment setup procedures"
-
 
 # Detect if the OS is Arch-based or Debian-based
 if command_exists pacman; then
