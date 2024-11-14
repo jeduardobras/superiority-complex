@@ -35,6 +35,7 @@ if is_manjaro; then
     echo "Detected Manjaro system. Applying Manjaro-specific Zsh configurations..."
     # Example Manjaro-specific configurations
     add_to_config 'source /usr/share/zsh/manjaro-zsh-config' "Manjaro Zsh configuration"
+    add_to_config 'source /usr/share/zsh/manjaro-zsh-prompt' "Manjaro Zsh prompt"
     add_to_config 'source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' "Zsh Syntax Highlighting Plugin"
     add_to_config 'source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' "Zsh Autosuggestions Plugin"
 fi
