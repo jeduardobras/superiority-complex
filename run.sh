@@ -9,16 +9,53 @@ command_exists() {
 CONFIG_FILE="$HOME/.zshrc"
 echo "Using configuration file: $CONFIG_FILE"
 
-# Function to add alias to config file
-add_alias() {
-    local alias_cmd="$1"
-    if ! grep -q "$alias_cmd" "$CONFIG_FILE"; then
-        echo "$alias_cmd" | tee -a "$CONFIG_FILE" > /dev/null
-        echo "Added alias to $CONFIG_FILE: $alias_cmd"
+# Function to add content to config file if not already present
+add_to_config() {
+    local content="$1"
+    local description="$2"
+    if ! grep -q "$content" "$CONFIG_FILE"; then
+        echo "$content" | tee -a "$CONFIG_FILE" > /dev/null
+        echo "$description added to $CONFIG_FILE."
     else
-        echo "Alias already exists in $CONFIG_FILE: $alias_cmd"
+        echo "$description already exists in $CONFIG_FILE."
     fi
 }
+
+# Function to detect if running on Manjaro
+is_manjaro() {
+    if [[ -f /etc/manjaro-release ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Apply Manjaro-specific Zsh configurations if on Manjaro
+if is_manjaro; then
+    echo "Detected Manjaro system. Applying Manjaro-specific Zsh configurations..."
+    # Example Manjaro-specific configurations
+    add_to_config 'source /usr/share/zsh/manjaro-zsh-config' "Manjaro Zsh configuration"
+    add_to_config 'source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' "Zsh Syntax Highlighting Plugin"
+    add_to_config 'source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' "Zsh Autosuggestions Plugin"
+fi
+
+# Add color aliases for commonly used commands
+echo "Adding color aliases..."
+add_to_config "alias ls='ls --color=auto'" "Color alias for ls"
+add_to_config "alias grep='grep --color=auto'" "Color alias for grep"
+add_to_config "alias egrep='egrep --color=auto'" "Color alias for egrep"
+add_to_config "alias fgrep='fgrep --color=auto'" "Color alias for fgrep"
+add_to_config "alias diff='diff --color=auto'" "Color alias for diff"
+add_to_config "alias tail='tail --color=always'" "Color alias for tail"
+add_to_config "alias dmesg='dmesg --color=always'" "Color alias for dmesg"
+
+# Add Zsh prompt customization
+echo "Adding custom PS1 prompt..."
+add_to_config 'export PS1="%F{green}%n@%m %F{blue}%~%f $ "' "Custom PS1 prompt"
+
+# Enable LS_COLORS for more vibrant colors when using ls
+echo "Enabling LS_COLORS..."
+add_to_config 'export LS_COLORS="di=34:ln=35:so=32:pi=33:ex=31:bd=37;40:cd=37;40:su=37;41:sg=37;46:tw=37;42:ow=37;43"' "LS_COLORS configuration"
 
 # Function to add SSH agent initialization
 add_ssh_agent() {
@@ -26,7 +63,7 @@ add_ssh_agent() {
         echo -e "\n# Start SSH agent" | tee -a "$CONFIG_FILE" > /dev/null
         echo 'eval "$(ssh-agent -s)"' | tee -a "$CONFIG_FILE" > /dev/null
         read -p "Enter your SSH key path (default: ~/.ssh/id_rsa): " ssh_key
-        ssh_key=${ssh_key:-~/.ssh/jbras_rubbersoul_github}
+        ssh_key=${ssh_key:-~/.ssh/id_rsa}
         if [ -f "$ssh_key" ]; then
             echo "Adding SSH key to agent..."
             echo "ssh-add $ssh_key" | tee -a "$CONFIG_FILE" > /dev/null
@@ -38,18 +75,6 @@ add_ssh_agent() {
         echo "SSH agent initialization already exists in $CONFIG_FILE."
     fi
 }
-
-# Add a shell alias
-echo "Adding a shell alias..."
-add_alias "alias ll='ls -alF'"
-
-# Add custom PS1 prompt to Zsh
-if ! grep -q "export PS1=" "$CONFIG_FILE"; then
-    echo 'export PS1="%F{green}%n@%m %F{blue}%~%f $ "' | tee -a "$CONFIG_FILE" > /dev/null
-    echo "Custom PS1 prompt added to $CONFIG_FILE."
-else
-    echo "PS1 prompt already customized in $CONFIG_FILE."
-fi
 
 # SSH Agent Configuration
 echo "Configuring SSH agent..."
