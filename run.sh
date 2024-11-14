@@ -30,33 +30,38 @@ is_manjaro() {
     fi
 }
 
-# Apply Manjaro-specific Zsh configurations if on Manjaro
-if is_manjaro; then
-    echo "Detected Manjaro system. Applying Manjaro-specific Zsh configurations..."
-    # Example Manjaro-specific configurations
-    add_to_config 'source /usr/share/zsh/manjaro-zsh-config' "Manjaro Zsh configuration"
-    add_to_config 'source /usr/share/zsh/manjaro-zsh-prompt' "Manjaro Zsh prompt"
-    add_to_config 'source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' "Zsh Syntax Highlighting Plugin"
-    add_to_config 'source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' "Zsh Autosuggestions Plugin"
-fi
+# Apply Zsh configs and prompting. If on Manjaro apply default settings
+apply_zsh_configs_prompt() {
+    if is_manjaro; then
+        echo "Detected Manjaro system. Applying Manjaro-specific Zsh configurations..."
+        # Example Manjaro-specific configurations
+        add_to_config 'source /usr/share/zsh/manjaro-zsh-config' "Manjaro Zsh configuration"
+        add_to_config 'source /usr/share/zsh/manjaro-zsh-prompt' "Manjaro Zsh prompt"
+        add_to_config 'source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' "Zsh Syntax Highlighting Plugin"
+        add_to_config 'source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' "Zsh Autosuggestions Plugin"
+    else
+        echo "Adding color aliases..."
+        add_to_config "alias ls='ls --color=auto'" "Color alias for ls"
+        add_to_config "alias grep='grep --color=auto'" "Color alias for grep"
+        add_to_config "alias egrep='egrep --color=auto'" "Color alias for egrep"
+        add_to_config "alias fgrep='fgrep --color=auto'" "Color alias for fgrep"
+        add_to_config "alias diff='diff --color=auto'" "Color alias for diff"
+        add_to_config "alias tail='tail --color=always'" "Color alias for tail"
+        add_to_config "alias dmesg='dmesg --color=always'" "Color alias for dmesg"
 
-# Add color aliases for commonly used commands
-echo "Adding color aliases..."
-add_to_config "alias ls='ls --color=auto'" "Color alias for ls"
-add_to_config "alias grep='grep --color=auto'" "Color alias for grep"
-add_to_config "alias egrep='egrep --color=auto'" "Color alias for egrep"
-add_to_config "alias fgrep='fgrep --color=auto'" "Color alias for fgrep"
-add_to_config "alias diff='diff --color=auto'" "Color alias for diff"
-add_to_config "alias tail='tail --color=always'" "Color alias for tail"
-add_to_config "alias dmesg='dmesg --color=always'" "Color alias for dmesg"
+        # Add Zsh prompt customization
+        echo "Adding custom PS1 prompt..."
+        add_to_config 'export PS1="%F{green}%n@%m %F{blue}%~%f $ "' "Custom PS1 prompt"
 
-# Add Zsh prompt customization
-echo "Adding custom PS1 prompt..."
-add_to_config 'export PS1="%F{green}%n@%m %F{blue}%~%f $ "' "Custom PS1 prompt"
+        # Enable LS_COLORS for more vibrant colors when using ls
+        echo "Enabling LS_COLORS..."  
+        add_to_config 'export LS_COLORS="di=34:ln=35:so=32:pi=33:ex=31:bd=37;40:cd=37;40:su=37;41:sg=37;46:tw=37;42:ow=37;43"' "LS_COLORS configuration"
+    fi
+}
 
-# Enable LS_COLORS for more vibrant colors when using ls
-echo "Enabling LS_COLORS..."
-add_to_config 'export LS_COLORS="di=34:ln=35:so=32:pi=33:ex=31:bd=37;40:cd=37;40:su=37;41:sg=37;46:tw=37;42:ow=37;43"' "LS_COLORS configuration"
+# Apply Zsh config and prompt
+echo "Applying Zsh config and prompt..."
+apply_zsh_configs_prompt
 
 # Function to add SSH agent initialization
 add_ssh_agent() {
