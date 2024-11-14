@@ -253,22 +253,30 @@ else
     echo "Konsole is not installed. Skipping Dracula theme application."
 fi
 
-# Add a bash alias to .bashrc
-echo "Adding a bash alias..."
-if ! grep -q "alias ll='ls -alF'" ~/.bashrc; then
-    echo "alias ll='ls -alF'" >> ~/.bashrc
-    echo "Added alias 'll' to ~/.bashrc"
+# Add a shell alias to the appropriate configuration file
+echo "Adding a shell alias..."
+DEFAULT_SHELL=$(basename "$SHELL")
+if [[ "$DEFAULT_SHELL" == "zsh" ]]; then
+    CONFIG_FILE="$HOME/.zshrc"
 else
-    echo "Alias 'll' already exists in ~/.bashrc."
+    CONFIG_FILE="$HOME/.bashrc"
+fi
+
+if ! grep -q "alias ll='ls -alF'" "$CONFIG_FILE"; then
+    echo "alias ll='ls -alF'" >> "$CONFIG_FILE"
+    echo "Added alias 'll' to $CONFIG_FILE"
+else
+    echo "Alias 'll' already exists in $CONFIG_FILE."
 fi
 
 # Add custom PS1 prompt to .bashrc
-echo "Setting custom PS1 prompt..."
-if ! grep -q "export PS1=" ~/.bashrc; then
-    echo 'export PS1="\[\e[1;32m\]\u@\h \[\e[1;34m\]\w\[\e[0m\] $ "' >> ~/.bashrc
-    echo "Custom PS1 prompt added to ~/.bashrc."
-else
-    echo "PS1 prompt already customized in ~/.bashrc."
+if [[ "$DEFAULT_SHELL" != "zsh" ]]; then
+    if ! grep -q "export PS1=" "$CONFIG_FILE"; then
+        echo 'export PS1="\[\e[1;32m\]\u@\h \[\e[1;34m\]\w\[\e[0m\] $ "' >> "$CONFIG_FILE"
+        echo "Custom PS1 prompt added to $CONFIG_FILE."
+    else
+        echo "PS1 prompt already customized in $CONFIG_FILE."
+    fi
 fi
 
 # Vim Installation and Configuration
@@ -326,21 +334,28 @@ for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "IDEs" "API_TOOLS" "BUILD_T
     fi
 done
 
-# bashrc SSH agent addition
-if ! grep -q "eval \"\$(ssh-agent -s)\"" "$HOME/.bashrc"; then
-    echo -e "\n# Start SSH agent" >> "$HOME/.bashrc"
-    echo 'eval "$(ssh-agent -s)"' >> "$HOME/.bashrc"
+# Shell configuration file SSH agent addition
+DEFAULT_SHELL=$(basename "$SHELL")
+if [[ "$DEFAULT_SHELL" == "zsh" ]]; then
+    CONFIG_FILE="$HOME/.zshrc"
+else
+    CONFIG_FILE="$HOME/.bashrc"
+fi
+
+if ! grep -q "eval \"\$(ssh-agent -s)\"" "$CONFIG_FILE"; then
+    echo -e "\n# Start SSH agent" >> "$CONFIG_FILE"
+    echo 'eval "$(ssh-agent -s)"' >> "$CONFIG_FILE"
     read -p "Enter your SSH key path (default: ~/.ssh/id_rsa): " ssh_key
     ssh_key=${ssh_key:-~/.ssh/id_rsa}
     if [ -f "$ssh_key" ]; then
         echo "Adding SSH key to agent..."
-        echo "ssh-add $ssh_key" >> "$HOME/.bashrc"
-        echo "SSH agent initialization added to .bashrc."
+        echo "ssh-add $ssh_key" >> "$CONFIG_FILE"
+        echo "SSH agent initialization added to $CONFIG_FILE."
     else
         echo "SSH key not found at $ssh_key. Please generate it using 'ssh-keygen'."
     fi
 else
-    echo "SSH agent initialization already exists in .bashrc."
+    echo "SSH agent initialization already exists in $CONFIG_FILE."
 fi
 
 echo "Finished environment setup procedures"
