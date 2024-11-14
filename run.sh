@@ -1,17 +1,97 @@
-#!/bin/bash
-
-# Install necessary tools if they are not already installed
-echo "Checking for required tools..."
+#!/bin/zsh
 
 # Function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Set Zsh configuration file
+CONFIG_FILE="$HOME/.zshrc"
+echo "Using configuration file: $CONFIG_FILE"
+
+# Function to add content to config file if not already present
+add_to_config() {
+    local content="$1"
+    local description="$2"
+    if ! grep -q "$content" "$CONFIG_FILE"; then
+        echo "$content" | tee -a "$CONFIG_FILE" > /dev/null
+        echo "$description added to $CONFIG_FILE."
+    else
+        echo "$description already exists in $CONFIG_FILE."
+    fi
+}
+
+# Function to detect if running on Manjaro
+is_manjaro() {
+    if [[ -f /etc/manjaro-release ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Apply Zsh configs and prompting. If on Manjaro apply default settings
+apply_zsh_configs_prompt() {
+    if is_manjaro; then
+        echo "Detected Manjaro system. Applying Manjaro-specific Zsh configurations..."
+        # Example Manjaro-specific configurations
+        add_to_config 'source /usr/share/zsh/manjaro-zsh-config' "Manjaro Zsh configuration"
+        add_to_config 'source /usr/share/zsh/manjaro-zsh-prompt' "Manjaro Zsh prompt"
+        add_to_config 'source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' "Zsh Syntax Highlighting Plugin"
+        add_to_config 'source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' "Zsh Autosuggestions Plugin"
+    else
+        echo "Adding color aliases..."
+        add_to_config "alias ls='ls --color=auto'" "Color alias for ls"
+        add_to_config "alias grep='grep --color=auto'" "Color alias for grep"
+        add_to_config "alias egrep='egrep --color=auto'" "Color alias for egrep"
+        add_to_config "alias fgrep='fgrep --color=auto'" "Color alias for fgrep"
+        add_to_config "alias diff='diff --color=auto'" "Color alias for diff"
+        add_to_config "alias tail='tail --color=always'" "Color alias for tail"
+        add_to_config "alias dmesg='dmesg --color=always'" "Color alias for dmesg"
+
+        # Add Zsh prompt customization
+        echo "Adding custom PS1 prompt..."
+        add_to_config 'export PS1="%F{green}%n@%m %F{blue}%~%f $ "' "Custom PS1 prompt"
+
+        # Enable LS_COLORS for more vibrant colors when using ls
+        echo "Enabling LS_COLORS..."  
+        add_to_config 'export LS_COLORS="di=34:ln=35:so=32:pi=33:ex=31:bd=37;40:cd=37;40:su=37;41:sg=37;46:tw=37;42:ow=37;43"' "LS_COLORS configuration"
+    fi
+}
+
+# Apply Zsh config and prompt
+echo "Applying Zsh config and prompt..."
+apply_zsh_configs_prompt
+
+# Function to add SSH agent initialization
+add_ssh_agent() {
+    if ! grep -q "eval \"\$(ssh-agent -s)\"" "$CONFIG_FILE"; then
+        echo -e "\n# Start SSH agent" | tee -a "$CONFIG_FILE" > /dev/null
+        echo 'eval "$(ssh-agent -s)"' | tee -a "$CONFIG_FILE" > /dev/null
+        read -p "Enter your SSH key path (default: ~/.ssh/id_rsa): " ssh_key
+        ssh_key=${ssh_key:-~/.ssh/id_rsa}
+        if [ -f "$ssh_key" ]; then
+            echo "Adding SSH key to agent..."
+            echo "ssh-add $ssh_key" | tee -a "$CONFIG_FILE" > /dev/null
+            echo "SSH agent initialization added to $CONFIG_FILE."
+        else
+            echo "SSH key not found at $ssh_key. Please generate it using 'ssh-keygen'."
+        fi
+    else
+        echo "SSH agent initialization already exists in $CONFIG_FILE."
+    fi
+}
+
+# SSH Agent Configuration
+echo "Configuring SSH agent..."
+add_ssh_agent
+
+echo "Finished environment setup procedures"
+
 # Detect if the OS is Arch-based or Debian-based
 if command_exists pacman; then
     PACKAGE_MANAGER="pacman -S --noconfirm"
-    INSTALL_CMD="sudo pacman -Syu --noconfirm"
+    INSTALL_CMD="pacman -Syu --noconfirm"
     VENV_PACKAGE="python-virtualenv"  # Arch uses python-virtualenv
     JDK_PACKAGE="jdk-openjdk"         # Arch uses jdk-openjdk instead of default-jdk
     POSTMAN_PACKAGE="postman-bin"     # Use postman-bin from AUR for Arch
@@ -253,32 +333,6 @@ else
     echo "Konsole is not installed. Skipping Dracula theme application."
 fi
 
-# Add a shell alias to the appropriate configuration file
-echo "Adding a shell alias..."
-DEFAULT_SHELL=$(basename "$SHELL")
-if [[ "$DEFAULT_SHELL" == "zsh" ]]; then
-    CONFIG_FILE="$HOME/.zshrc"
-else
-    CONFIG_FILE="$HOME/.bashrc"
-fi
-
-if ! grep -q "alias ll='ls -alF'" "$CONFIG_FILE"; then
-    echo "alias ll='ls -alF'" >> "$CONFIG_FILE"
-    echo "Added alias 'll' to $CONFIG_FILE"
-else
-    echo "Alias 'll' already exists in $CONFIG_FILE."
-fi
-
-# Add custom PS1 prompt to shell 
-if [[ "$DEFAULT_SHELL" != "zsh" ]]; then
-    if ! grep -q "export PS1=" "$CONFIG_FILE"; then
-        echo 'export PS1="\[\e[1;32m\]\u@\h \[\e[1;34m\]\w\[\e[0m\] $ "' >> "$CONFIG_FILE"
-        echo "Custom PS1 prompt added to $CONFIG_FILE."
-    else
-        echo "PS1 prompt already customized in $CONFIG_FILE."
-    fi
-fi
-
 # Vim Installation and Configuration
 read -p "Do you want to install and configure Vim? [Y/n] " vim_install
 vim_install=${vim_install:-Y}
@@ -333,30 +387,6 @@ for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "IDEs" "API_TOOLS" "BUILD_T
         echo "${category//_/ }: ${installed_tools[*]}"
     fi
 done
-
-# Shell configuration file SSH agent addition
-DEFAULT_SHELL=$(basename "$SHELL")
-if [[ "$DEFAULT_SHELL" == "zsh" ]]; then
-    CONFIG_FILE="$HOME/.zshrc"
-else
-    CONFIG_FILE="$HOME/.bashrc"
-fi
-
-if ! grep -q "eval \"\$(ssh-agent -s)\"" "$CONFIG_FILE"; then
-    echo -e "\n# Start SSH agent" >> "$CONFIG_FILE"
-    echo 'eval "$(ssh-agent -s)"' >> "$CONFIG_FILE"
-    read -p "Enter your SSH key path (default: ~/.ssh/id_rsa): " ssh_key
-    ssh_key=${ssh_key:-~/.ssh/id_rsa}
-    if [ -f "$ssh_key" ]; then
-        echo "Adding SSH key to agent..."
-        echo "ssh-add $ssh_key" >> "$CONFIG_FILE"
-        echo "SSH agent initialization added to $CONFIG_FILE."
-    else
-        echo "SSH key not found at $ssh_key. Please generate it using 'ssh-keygen'."
-    fi
-else
-    echo "SSH agent initialization already exists in $CONFIG_FILE."
-fi
 
 echo "Finished environment setup procedures"
 exit 0
