@@ -169,6 +169,12 @@ fi
 
 # Core utilities
 CORE_UTILS=(ssh curl git vim python3 valgrind)
+
+# Add base-devel for Arch-based systems if pacman is detected
+if command_exists pacman; then
+    CORE_UTILS+=(base-devel)
+fi
+
 INSTALLED_CORE_UTILS=()
 
 # Compilers
