@@ -88,30 +88,35 @@ add_ssh_agent
 
 echo "Finished environment setup procedures"
 
+# Check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
 # Detect if the OS is Arch-based or Debian-based
 if command_exists pacman; then
-    PACKAGE_MANAGER="pacman -S --noconfirm"
-    INSTALL_CMD="pacman -Syu --noconfirm"
-    VENV_PACKAGE="python-virtualenv"  # Arch uses python-virtualenv
-    JDK_PACKAGE="jdk-openjdk"         # Arch uses jdk-openjdk instead of default-jdk
-    POSTMAN_PACKAGE="postman-bin"     # Use postman-bin from AUR for Arch
-    VS_CODE_PACKAGE="visual-studio-code-bin"  # VS Code from AUR
-    CHROME_PACKAGE="google-chrome"    # Google Chrome from AUR
-    MATTERMOST_PACKAGE="mattermost-desktop"  # Mattermost from AUR
-    TEAMS_PACKAGE="teams"                    # Microsoft Teams from AUR
-    SPOTIFY_PACKAGE="spotify"                # Spotify from AUR
-    INTELLIJ_PACKAGE="intellij-idea-community-edition"  # IntelliJ for Arch
-    PYCHARM_PACKAGE="pycharm-community-edition"         # PyCharm for Arch
-    EMAIL_CLIENT_PACKAGE="kmail"             # KMail for Arch
-    ZOOM_PACKAGE="zoom"                      # Zoom from AUR
-    OBSIDIAN_PACKAGE="obsidian"              # Obsidian from AUR
+    PACKAGE_MANAGER=("pacman" "-S" "--noconfirm")
+    INSTALL_CMD=("pacman" "-Syu" "--noconfirm")
+    VENV_PACKAGE="python-virtualenv"
+    JDK_PACKAGE="jdk-openjdk"
+    POSTMAN_PACKAGE="postman-bin"
+    VS_CODE_PACKAGE="visual-studio-code-bin"
+    CHROME_PACKAGE="google-chrome"
+    MATTERMOST_PACKAGE="mattermost-desktop"
+    TEAMS_PACKAGE="teams"
+    SPOTIFY_PACKAGE="spotify"
+    INTELLIJ_PACKAGE="intellij-idea-community-edition"
+    PYCHARM_PACKAGE="pycharm-community-edition"
+    EMAIL_CLIENT_PACKAGE="kmail"
+    ZOOM_PACKAGE="zoom"
+    OBSIDIAN_PACKAGE="obsidian"
     DRACULA_KONSOLE_URL="https://raw.githubusercontent.com/dracula/konsole/master/Dracula.colorscheme"
 
     # Check for an AUR helper like yay or paru
     if command_exists yay; then
-        AUR_INSTALLER="yay -S --noconfirm"
+        AUR_INSTALLER=("yay" "-S" "--noconfirm")
     elif command_exists paru; then
-        AUR_INSTALLER="paru -S --noconfirm"
+        AUR_INSTALLER=("paru" "-S" "--noconfirm")
     else
         echo "No AUR helper found. Please install 'yay' or 'paru' to proceed with AUR packages."
         POSTMAN_PACKAGE=""
@@ -127,38 +132,38 @@ if command_exists pacman; then
         OBSIDIAN_PACKAGE=""
     fi
 elif command_exists apt; then
-    PACKAGE_MANAGER="apt install -y"
-    INSTALL_CMD="sudo apt update && sudo apt install -y"
-    VENV_PACKAGE="python3-venv"       # Debian uses python3-venv
-    JDK_PACKAGE="default-jdk"         # Debian uses default-jdk
-    POSTMAN_PACKAGE=""                # Postman installation handled separately
-    VS_CODE_PACKAGE="code"            # VS Code for Debian
-    CHROME_PACKAGE="google-chrome-stable"  # Google Chrome for Debian
-    MATTERMOST_PACKAGE="mattermost-desktop"  # Mattermost for Debian
-    TEAMS_PACKAGE="teams"             # Microsoft Teams for Debian
-    SPOTIFY_PACKAGE="spotify-client"  # Spotify for Debian
-    INTELLIJ_PACKAGE="intellij-idea-community"  # IntelliJ for Debian
-    PYCHARM_PACKAGE="pycharm-community"         # PyCharm for Debian
-    EMAIL_CLIENT_PACKAGE="kmail"      # KMail for Debian
-    ZOOM_PACKAGE="zoom"               # Zoom for Debian
-    OBSIDIAN_PACKAGE="obsidian"       # Obsidian AppImage or .deb
+    PACKAGE_MANAGER=("apt" "install" "-y")
+    INSTALL_CMD=("sudo" "apt" "update" "&&" "sudo" "apt" "install" "-y")
+    VENV_PACKAGE="python3-venv"
+    JDK_PACKAGE="default-jdk"
+    POSTMAN_PACKAGE=""
+    VS_CODE_PACKAGE="code"
+    CHROME_PACKAGE="google-chrome-stable"
+    MATTERMOST_PACKAGE="mattermost-desktop"
+    TEAMS_PACKAGE="teams"
+    SPOTIFY_PACKAGE="spotify-client"
+    INTELLIJ_PACKAGE="intellij-idea-community"
+    PYCHARM_PACKAGE="pycharm-community"
+    EMAIL_CLIENT_PACKAGE="kmail"
+    ZOOM_PACKAGE="zoom"
+    OBSIDIAN_PACKAGE="obsidian"
 
     # Spotify repository setup for Debian-based systems
     if ! grep -q "spotify" /etc/apt/sources.list.d/* 2>/dev/null; then
-        curl -sS https://download.spotify.com/debian/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/spotify-archive-keyring.gpg
+        curl -sS https://download.spotify.com/debian/pubkey.gpg | sudo tee /usr/share/keyrings/spotify-archive-keyring.gpg > /dev/null
         echo "deb [signed-by=/usr/share/keyrings/spotify-archive-keyring.gpg] http://repository.spotify.com stable non-free" | sudo tee /etc/apt/sources.list.d/spotify.list
     fi
 
     # Add Google's repository for Chrome
     if ! grep -q "dl.google.com/linux/chrome/deb/" /etc/apt/sources.list.d/* 2>/dev/null; then
-        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-        echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo tee /usr/share/keyrings/google-linux-key.gpg > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/google-linux-key.gpg] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
     fi
 
     # Zoom repository setup for Debian-based systems
     if ! grep -q "zoom" /etc/apt/sources.list.d/* 2>/dev/null; then
-        wget -O- https://zoom.us/linux/download/pubkey | sudo apt-key add -
-        echo "deb [arch=amd64] https://zoom.us/linux/debian stable main" | sudo tee /etc/apt/sources.list.d/zoom.list
+        wget -qO- https://zoom.us/linux/download/pubkey | sudo tee /usr/share/keyrings/zoom-linux-key.gpg > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/zoom-linux-key.gpg] https://zoom.us/linux/debian stable main" | sudo tee /etc/apt/sources.list.d/zoom.list
     fi
 
     sudo apt update
@@ -231,6 +236,11 @@ INSTALLED_VIDEO_CONFERENCING=()
 NOTES_APPS=("$OBSIDIAN_PACKAGE")
 INSTALLED_NOTES_APPS=()
 
+# Check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
 # Function to install missing tools with error handling
 install_tools() {
     local tool_category="$1"
@@ -238,6 +248,7 @@ install_tools() {
     local tools=("$@")
     local missing_tools=()
 
+    # Check for missing tools
     for tool in "${tools[@]}"; do
         if ! command_exists "$tool"; then
             missing_tools+=("$tool")
@@ -246,49 +257,69 @@ install_tools() {
         fi
     done
 
-    if [ ${#missing_tools[@]} -ne 0 ]; then
-        read -p "Do you want to install missing ${tool_category//_/ }? (${missing_tools[*]}): [Y/n] " answer
-        answer=${answer:-Y}
-        if [[ "$answer" =~ ^[Yy]$ ]]; then
-            echo "Installing missing ${tool_category//_/ }: ${missing_tools[*]}..."
-            # Update repositories only once per installation
-            if [ "$INSTALL_CMD_RUN" != "true" ]; then
-                $INSTALL_CMD
-                INSTALL_CMD_RUN="true"
-            fi
-            for tool in "${missing_tools[@]}"; do
-                if [[ "$tool" == "postman-bin" || "$tool" == *"-bin" || "$tool" == "$CHROME_PACKAGE" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" || "$tool" == "$INTELLIJ_PACKAGE" || "$tool" == "$PYCHARM_PACKAGE" || "$tool" == "$EMAIL_CLIENT_PACKAGE" || "$tool" == "$ZOOM_PACKAGE" || "$tool" == "$OBSIDIAN_PACKAGE" ]] && [ -n "$AUR_INSTALLER" ]; then
-                    echo "Installing $tool from AUR..."
-                    if ! $AUR_INSTALLER "$tool"; then
-                        echo "Failed to install $tool from AUR."
-                    fi
-                elif [[ "$tool" == "google-chrome-stable" ]]; then
-                    echo "Installing Google Chrome..."
-                    sudo apt install -y google-chrome-stable
-                elif [[ "$tool" == "zoom" && "$PACKAGE_MANAGER" == "apt install -y" ]]; then
-                    echo "Installing Zoom..."
-                    sudo apt install -y zoom
-                elif [[ "$tool" == "obsidian" ]]; then
-                    echo "Installing Obsidian..."
-                    if [ "$PACKAGE_MANAGER" == "apt install -y" ]; then
-                        OBSIDIAN_DEB_URL=$(curl -s https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest | grep "browser_download_url.*amd64.deb" | cut -d '"' -f 4)
-                        wget "$OBSIDIAN_DEB_URL" -O /tmp/obsidian.deb
-                        sudo dpkg -i /tmp/obsidian.deb
-                        sudo apt -f install -y
-                        rm /tmp/obsidian.deb
-                    elif [ -n "$AUR_INSTALLER" ]; then
-                        $AUR_INSTALLER obsidian
-                    fi
-                else
-                    echo "Installing $tool..."
-                    sudo $PACKAGE_MANAGER "$tool"
-                fi
-            done
-        else
-            echo "Skipping installation of missing ${tool_category//_/ }."
-        fi
-    else
+    if [ ${#missing_tools[@]} -eq 0 ]; then
         echo "All ${tool_category//_/ } are already installed."
+        return
+    fi
+
+    # Prompt user for installation
+    read -p "Do you want to install missing ${tool_category//_/ }? (${missing_tools[*]}): [Y/n] " answer
+    answer=${answer:-Y}
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+        echo "Installing missing ${tool_category//_/ }: ${missing_tools[*]}..."
+        
+        # Update repositories once if needed
+        if [ -z "$INSTALL_CMD_RUN" ]; then
+            $INSTALL_CMD || { echo "Failed to update repositories."; return 1; }
+            INSTALL_CMD_RUN=true
+        fi
+
+        for tool in "${missing_tools[@]}"; do
+            if [[ "$tool" == *"-bin" || "$tool" == "$CHROME_PACKAGE" || "$tool" == "teams" || "$tool" == "mattermost-desktop" || "$tool" == "spotify" || "$tool" == "$INTELLIJ_PACKAGE" || "$tool" == "$PYCHARM_PACKAGE" || "$tool" == "$EMAIL_CLIENT_PACKAGE" || "$tool" == "$ZOOM_PACKAGE" || "$tool" == "$OBSIDIAN_PACKAGE" ]] && [ -n "$AUR_INSTALLER" ]; then
+                echo "Installing $tool from AUR..."
+                if ! $AUR_INSTALLER "$tool"; then
+                    echo "Failed to install $tool from AUR."
+                fi
+            elif [[ "$tool" == "google-chrome-stable" ]]; then
+                echo "Installing Google Chrome..."
+                if ! sudo apt install -y google-chrome-stable; then
+                    echo "Failed to install Google Chrome."
+                fi
+            elif [[ "$tool" == "zoom" && "$PACKAGE_MANAGER" == "apt install -y" ]]; then
+                echo "Installing Zoom..."
+                if ! sudo apt install -y zoom; then
+                    echo "Failed to install Zoom."
+                fi
+            elif [[ "$tool" == "obsidian" ]]; then
+                echo "Installing Obsidian..."
+                if [ "$PACKAGE_MANAGER" == "apt install -y" ]; then
+                    local obsidian_url
+                    obsidian_url=$(curl -s https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest | grep "browser_download_url.*amd64.deb" | cut -d '"' -f 4)
+                    if [ -n "$obsidian_url" ]; then
+                        wget "$obsidian_url" -O /tmp/obsidian.deb
+                        if sudo dpkg -i /tmp/obsidian.deb && sudo apt -f install -y; then
+                            echo "Successfully installed Obsidian."
+                        else
+                            echo "Failed to install Obsidian."
+                        fi
+                        rm /tmp/obsidian.deb
+                    else
+                        echo "Failed to fetch Obsidian download URL."
+                    fi
+                elif [ -n "$AUR_INSTALLER" ]; then
+                    if ! $AUR_INSTALLER obsidian; then
+                        echo "Failed to install Obsidian from AUR."
+                    fi
+                fi
+            else
+                echo "Installing $tool..."
+                if ! sudo $PACKAGE_MANAGER "$tool"; then
+                    echo "Failed to install $tool."
+                fi
+            fi
+        done
+    else
+        echo "Skipping installation of missing ${tool_category//_/ }."
     fi
 }
 
