@@ -68,9 +68,10 @@ add_ssh_agent() {
     if ! grep -q "eval \"\$(ssh-agent -s)\"" "$CONFIG_FILE"; then
         echo -e "\n# Start SSH agent" | tee -a "$CONFIG_FILE" > /dev/null
         echo 'eval "$(ssh-agent -s)"' | tee -a "$CONFIG_FILE" > /dev/null
-        read -p "Enter your SSH key path (default: ~/.ssh/id_rsa): " ssh_key
-        ssh_key=${ssh_key:-~/.ssh/id_rsa}
-        if [ -f "$ssh_key" ]; then
+        printf "Enter your SSH key path (default: ~/.ssh/id_rsa): "
+	read ssh_key
+	ssh_key=${ssh_key:-~/.ssh/id_rsa}
+	if [ -f "$ssh_key" ]; then
             echo "Adding SSH key to agent..."
             echo "ssh-add $ssh_key" | tee -a "$CONFIG_FILE" > /dev/null
             echo "SSH agent initialization added to $CONFIG_FILE."
@@ -343,12 +344,15 @@ install_tools "VIDEO_CONFERENCING" "${VIDEO_CONFERENCING[@]}"
 install_tools "NOTES_APPS" "${NOTES_APPS[@]}"
 
 # Git Configuration
-read -p "Do you want to configure Git? [Y/n] " git_configure
+printf "Do you want to configure Git? [Y/n] "
+read git_configure
 git_configure=${git_configure:-Y}
 if [[ "$git_configure" =~ ^[Yy]$ ]]; then
     echo "Configuring Git account..."
-    read -p "Enter your Git username: " git_username
-    read -p "Enter your Git email: " git_email
+    printf "Enter your Git username: "
+    read git_username
+    printf "Enter your Git email: "
+    read git_email	
 
     git config --global user.name "$git_username"
     git config --global user.email "$git_email"
@@ -371,7 +375,8 @@ else
 fi
 
 # Vim Installation and Configuration
-read -p "Do you want to install and configure Vim? [Y/n] " vim_install
+printf "Do you want to install and configure Vim? [Y/n] "
+read vim_install
 vim_install=${vim_install:-Y}
 if [[ "$vim_install" =~ ^[Yy]$ ]]; then
     echo "Configuring Vim..."
