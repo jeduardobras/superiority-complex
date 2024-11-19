@@ -424,8 +424,9 @@ fi
 
 echo -e "\n### Summary of Installed Tools ###"
 for category in "CORE_UTILS" "COMPILERS" "DEV_UTILS" "IDEs" "API_TOOLS" "BUILD_TOOLS" "TERMINAL_TOOLS" "SEARCH_TOOLS" "BROWSERS" "ENTERTAINMENT" "EXTRA_APPS" "EMAIL_CLIENTS" "VIDEO_CONFERENCING" "NOTES_APPS"; do
-    installed_var="INSTALLED_$category[@]"
-    installed_tools=("${!installed_var}")
+    installed_var="INSTALLED_$category"
+    # Indirect expansion compatible with both bash and zsh
+    eval "installed_tools=(\"\${${installed_var}[@]}\")"
     if [ ${#installed_tools[@]} -ne 0 ]; then
         echo "${category//_/ }: ${installed_tools[*]}"
     fi
@@ -433,4 +434,3 @@ done
 
 echo "Finished environment setup procedures"
 exit 0
-
