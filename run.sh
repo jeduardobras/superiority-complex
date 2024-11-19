@@ -263,8 +263,8 @@ install_tools() {
     fi
 
     # Prompt user for installation
-    read -p "Do you want to install missing ${tool_category//_/ }? (${missing_tools[*]}): [Y/n] " answer
-    answer=${answer:-Y}
+    printf "Do you want to install missing ${tool_category//_/ }? (${missing_tools[*]}): [Y/n] "
+    read answer
     if [[ "$answer" =~ ^[Yy]$ ]]; then
         echo "Installing missing ${tool_category//_/ }: ${missing_tools[*]}..."
         
